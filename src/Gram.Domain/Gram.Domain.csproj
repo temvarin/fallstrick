@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Shared by the app (runs in the browser via WebAssembly) and the pipeline (writes the app's data). -->
+  <PropertyGroup>
+    <IsTrimmable>true</IsTrimmable>
+    <!-- "Case" is the grammatical term; it clashes only with a VB keyword, and nothing here is consumed from VB. -->
+    <NoWarn>$(NoWarn);CA1716</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Gram.Domain.Tests" />
+  </ItemGroup>
+
+</Project>
