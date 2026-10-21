@@ -1,0 +1,21 @@
+# Words too basic to need a translation for a B1–C1 learner; `words` leaves them out of its report.
+# Articles and article words (all forms are covered by the grammar engine anyway)
+der die das dem den des ein eine einem einen einer eines kein keine keinem keinen keiner keines
+mein meine meinem meinen meiner meines dein deine deinem deinen deiner deines sein seine seinem seinen seiner seines
+ihr ihre ihrem ihren ihrer ihres unser unsere unserem unseren unserer unseres euer eure eurem euren eurer eures
+dieser diese diesem diesen dieses jeder jede jedem jeden jedes alle allen aller beide beiden viele vielen vieler
+einige einigen wenige wenigen mehrere mehreren zwei drei vier fünf zehn hundert
+# Pronouns
+ich du er sie es wir ihr mich dich sich uns euch mir dir ihm ihnen Sie Ihnen man jemand niemand etwas nichts alles was wer wen wem
+# Prepositions and conjunctions
+an auf aus bei bis durch für gegen hinter in im ins mit nach neben ohne seit über um unter von vor während wegen zu zum zur zwischen trotz am ans vom beim
+und oder aber denn sondern dass ob weil wenn als wie damit sodass obwohl
+# Very common verbs (forms)
+sein bin bist ist sind seid war waren gewesen haben habe hast hat habt hatte hatten gehabt werden werde wirst wird werdet wurde wurden geworden
+können kann kannst konnte müssen muss musst musste wollen will willst wollte sollen soll sollte dürfen darf möchte möchten möchtest
+gehen geht ging gegangen kommen kommt kam gekommen machen macht gemacht sagen sagt gesagt geben gibt gab gegeben
+# Adverbs and particles
+nicht nur auch noch schon sehr gern gerne immer nie oft heute morgen gestern hier da dort jetzt dann so ja nein bitte danke
+mehr viel wenig ganz gut lange bald wieder sofort zusammen genau leider vielleicht wirklich
+# Particles of separable verbs and numbers
+ab teil auseinander acht sechs
