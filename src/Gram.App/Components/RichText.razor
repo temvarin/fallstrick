@@ -1,0 +1,26 @@
+@* Renders text segments pre-parsed by the pipeline: words with a translation can be tapped. No parsing happens here. *@
+@inject Catalog Catalog
+@inject Dialogs Dialogs
+
+@foreach (var segment in Text)
+{
+    @if (segment.Term is int term)
+    {
+        @* stopPropagation: a word inside an answer button explains the word instead of choosing the answer. *@
+        <span class="term" role="button" tabindex="0" @onclick="() => Dialogs.ShowTerm(Catalog.Terms[term])" @onclick:stopPropagation>@segment.Text</span>
+    }
+    else
+    {
+        @segment.Text
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<Segment> Text { get; set; } = [];
+
+    public static bool IsEmpty(IReadOnlyList<Segment> text) => text.All(s => s.Text.Length == 0);
+
+    /// <summary>A word placed at the start of a sentence gets a capital letter: die → Die.</summary>
+    public static string AtStart(string word, IReadOnlyList<Segment> before) =>
+        IsEmpty(before) && word.Length > 0 ? char.ToUpperInvariant(word[0]) + word[1..] : word;
+}

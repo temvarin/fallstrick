@@ -1,0 +1,39 @@
+@page "/woerter"
+@inject Catalog Catalog
+
+<TopBar Title="Wörter" />
+
+<div class="chips" role="tablist">
+    <button class="chip @(rektion ? "" : "on")" role="tab" aria-selected="@(!rektion)" @onclick="() => rektion = false">Nomen</button>
+    <button class="chip @(rektion ? "on" : "")" role="tab" aria-selected="@rektion" @onclick="() => rektion = true">Rektion</button>
+</div>
+<input class="search" type="search" placeholder="Suchen" aria-label="Suchen" @bind="query" @bind:event="oninput" />
+
+<ul class="plain card">
+    @if (rektion)
+    {
+        foreach (var r in Catalog.Rektion.Where(r => Matches(r.Headword) || Matches(r.Ru)).OrderBy(r => SortKey(r.Headword)))
+        {
+            <li><b>@r.Headword @r.Preposition + @German.Case(r.Case)</b> <span class="muted">@r.Meaning</span><br /><span lang="ru">@r.Ru</span></li>
+        }
+    }
+    else
+    {
+        foreach (var n in Catalog.Nouns.Where(n => Matches(n.Lemma) || Matches(n.Ru)).OrderBy(n => SortKey(n.Lemma)))
+        {
+            <li><b>@n.WithArticle</b>@(n.Plural is { } plural ? $", die {plural}" : "") <span class="muted">@n.Level</span><br /><span lang="ru">@n.Ru</span>@if (n.Hint is { } hint) { <span class="muted"> – @hint</span> }</li>
+        }
+    }
+</ul>
+
+@code {
+    private bool rektion;
+    private string query = "";
+
+    private bool Matches(string text) => text.Contains(query.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    // German dictionary order without culture data (DIN 5007-1: ä = a), ignoring "sich", "es" and articles.
+    private static string SortKey(string headword) =>
+        string.Join(' ', headword.Split(' ').SkipWhile(w => w is "sich" or "es" or "der" or "die" or "das"))
+            .ToLowerInvariant().Replace('ä', 'a').Replace('ö', 'o').Replace('ü', 'u').Replace("ß", "ss");
+}

@@ -1,0 +1,25 @@
+@* A declension table: cases down, masculine / neuter / feminine / plural across. One cell can be highlighted, and cells
+   where the adjective carries the signal can be marked. *@
+<table class="decl">
+    <thead><tr><th></th><th>m</th><th>n</th><th>f</th><th>Pl</th></tr></thead>
+    <tbody>
+        @foreach (var @case in Enum.GetValues<Case>())
+        {
+            <tr>
+                <th scope="row">@Short(@case)</th>
+                @foreach (var column in Enum.GetValues<GenderNumber>())
+                {
+                    <td class="@(Highlight == (@case, column) ? "hl" : Signal(@case, column) ? "sg" : "")">@(Cell(@case, column) ?? "–")</td>
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [Parameter, EditorRequired] public Func<Case, GenderNumber, string?> Cell { get; set; } = (_, _) => null;
+    [Parameter] public (Case, GenderNumber)? Highlight { get; set; }
+    [Parameter] public Func<Case, GenderNumber, bool> Signal { get; set; } = (_, _) => false;
+
+    private static string Short(Case @case) => German.Case(@case)[..3];
+}

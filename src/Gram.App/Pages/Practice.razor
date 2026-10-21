@@ -1,0 +1,148 @@
+@page "/ueben"
+@inject Catalog Catalog
+@inject AppState State
+@inject TimeProvider Clock
+@inject Random Random
+
+<TopBar Title="Üben" Back="">
+    @if (exercise is not null)
+    {
+        <span class="counter" aria-label="@session!.Answered von @session.Total Karten geübt">@session.Answered / @session.Total</span>
+    }
+</TopBar>
+
+@if (exercise is null)
+{
+    <div class="card">
+        <p class="headline">@(session?.Total > 0 ? "Geschafft" : "Für heute ist alles geübt")</p>
+        @if (session?.Total > 0)
+        {
+            <p>@firstTry von @session.Total Karten beim ersten Versuch richtig.</p>
+        }
+    </div>
+    @if (more)
+    {
+        <button class="btn primary" @onclick="Start">Weiter üben</button>
+    }
+    <a class="btn" href="">Zur Übersicht</a>
+}
+else
+{
+    <div class="meta"><span class="chip">@Label(exercise)</span></div>
+
+    @switch (exercise)
+    {
+        case ArticleExercise e:
+            <ArticleTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            break;
+        case CaseExercise e:
+            <CaseTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            break;
+        case EndingExercise e:
+            <EndingTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            break;
+        case WhoWhomExercise e:
+            <WhoWhomTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            break;
+        case RektionExercise e:
+            <RektionTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" OnGiveUp="GiveUp" />
+            break;
+    }
+
+    @if (stage == Stage.Retry)
+    {
+        <div class="card hint-card" role="status"><b>Noch nicht.</b> @hint</div>
+    }
+    @if (Done)
+    {
+        <div class="result" role="status">
+            <span class="tag @(rating == Rating.Again ? "bad" : "ok")">@Verdict</span>
+            @if (rating == Rating.Again)
+            {
+                <span class="muted">Kommt in dieser Runde noch einmal.</span>
+            }
+        </div>
+        <button class="btn next" @onclick="Next">Weiter <Icon Name="arrow-right" /></button>
+    }
+}
+
+@code {
+    private enum Stage { Asking, Retry, Done }
+
+    private Session? session;
+    private Exercise? exercise;
+    private Stage stage;
+    private readonly List<string> wrong = [];
+    private string? hint;
+    private Rating rating;
+    private int firstTry;
+    private bool more;
+
+    private bool Done => stage == Stage.Done;
+
+    private string Verdict => rating switch
+    {
+        Rating.Good => "Richtig",
+        Rating.Hard => "Richtig im zweiten Versuch",
+        _ => "Nicht richtig",
+    };
+
+    protected override void OnInitialized() => Start();
+
+    private void Start()
+    {
+        session = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random);
+        firstTry = 0;
+        Show();
+    }
+
+    private void Show()
+    {
+        exercise = session!.Current is { } card ? Catalog.Exercise(card, Random) : null;
+        (stage, hint) = (Stage.Asking, null);
+        wrong.Clear();
+        // More due or new cards than fit into one session.
+        if (exercise is null) more = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random).Total > 0;
+    }
+
+    private void Submit(string answer)
+    {
+        if (exercise!.IsRight(answer))
+        {
+            Finish(stage == Stage.Retry ? Rating.Hard : Rating.Good);
+        }
+        else
+        {
+            wrong.Add(answer);
+            if (stage == Stage.Asking && exercise.AllowsRetry)
+                (stage, hint) = (Stage.Retry, exercise.Hint(answer));
+            else
+                Finish(Rating.Again);
+        }
+    }
+
+    private void GiveUp() => Finish(Rating.Again);
+
+    // The answer is recorded right away, so closing the app on the feedback screen loses nothing.
+    private void Finish(Rating result)
+    {
+        var firstAnswer = session!.Answered;
+        rating = result;
+        stage = Stage.Done;
+        session.Answer(result);
+        if (session.Answered > firstAnswer && result == Rating.Good) firstTry++;
+        State.Save();
+    }
+
+    private void Next() => Show();
+
+    private static string Label(Exercise exercise) => exercise switch
+    {
+        ArticleExercise e => $"Artikel · {e.Noun.Level}",
+        CaseExercise e => $"Fälle · {German.Case(e.Frame.Case)}",
+        WhoWhomExercise => "Fälle · Wer macht was?",
+        EndingExercise e => $"Adjektiv · {German.Case(e.Frame.Case)}",
+        RektionExercise e => $"Rektion · {e.Entry.Level}",
+        _ => "",
+    };
+}

@@ -1,0 +1,41 @@
+@{
+    var frame = Exercise.Frame;
+    var lead = Exercise.DeterminerForm.Length > 0
+        ? $"{RichText.AtStart(Exercise.DeterminerForm, frame.Before)} {Exercise.Stem}"
+        : RichText.AtStart(Exercise.Stem, frame.Before);
+}
+<div class="card prompt">
+    <p class="sentence"><RichText Text="frame.Before" />@lead<Gap Text="@(Done ? Exercise.Answer : null)" Before="[new Segment(lead)]" /><RichText Text="frame.After" /></p>
+</div>
+
+<Choices Options="EndingExercise.Options" Answer="@Exercise.Answer" Wrong="Wrong" Done="Done" OnChoose="OnSubmit" Prefix="-" />
+
+@if (Done)
+{
+    var inflection = Determiners.Get(frame.Determiner).Adjective;
+    <div class="card feedback">
+        <p><b>Wer zeigt das Signal?</b></p>
+        <p>@Exercise.Explanation</p>
+        <p class="muted">Endungen @Name(inflection):</p>
+        <DeclensionTable Cell="(c, g) => Adjective.Ending(inflection, c, g)" Highlight="(frame.Case, frame.Column)"
+                         Signal="(c, g) => Adjective.ShowsSignal(inflection, c, g)" />
+        @if (inflection != Inflection.Weak)
+        {
+            <p class="muted">Schwarz: Hier zeigt das Adjektiv das Signal.</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public EndingExercise Exercise { get; set; } = null!;
+    [Parameter] public bool Done { get; set; }
+    [Parameter] public IReadOnlyCollection<string> Wrong { get; set; } = [];
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+
+    public static string Name(Inflection inflection) => inflection switch
+    {
+        Inflection.Weak => "nach der, dieser, alle …",
+        Inflection.Mixed => "nach ein, kein, mein …",
+        _ => "ohne Artikel und nach viele, einige …",
+    };
+}

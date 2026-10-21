@@ -1,0 +1,54 @@
+<div class="card prompt">
+    @if (Exercise.Noun.Hint is { } hint)
+    {
+        <p class="muted">@hint</p>
+    }
+    <p class="sentence big">
+        <Gap Text="@(Done ? Exercise.Answer : null)" />
+        @* Tapping the noun shows its meaning, never its article. *@
+        <button class="word" aria-expanded="@showRu" @onclick="() => showRu = !showRu">@Exercise.Noun.Lemma</button>
+    </p>
+    @if (showRu || Done)
+    {
+        <p class="ru-line" lang="ru">@Exercise.Noun.Ru</p>
+    }
+</div>
+
+<Choices Options="ArticleExercise.Options" Answer="@Exercise.Answer" Wrong="Wrong" Done="Done" OnChoose="OnSubmit" />
+
+@if (Done)
+{
+    <div class="card feedback">
+        <p><b>@Exercise.Noun.WithArticle</b>@(Exercise.Noun.Plural is { } plural ? $", die {plural}" : " (ohne Plural)")</p>
+        @if (Exercise.RuleNote is { } note)
+        {
+            <p>@note</p>
+        }
+        @if (Exercise.Contrast.Count > 0)
+        {
+            <p class="muted">Gleich geschrieben, anderes Genus:</p>
+            <ul class="plain compact">
+                @foreach (var other in Exercise.Contrast)
+                {
+                    <li><b>@other.WithArticle</b> – @other.Hint <span class="muted" lang="ru">(@other.Ru)</span></li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ArticleExercise Exercise { get; set; } = null!;
+    [Parameter] public bool Done { get; set; }
+    [Parameter] public IReadOnlyCollection<string> Wrong { get; set; } = [];
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+
+    private bool showRu;
+    private ArticleExercise? shown;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(shown, Exercise)) return;
+        (shown, showRu) = (Exercise, false); // a new card starts without the translation
+    }
+}

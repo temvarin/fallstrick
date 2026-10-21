@@ -1,0 +1,50 @@
+@implements IDisposable
+@inject Dialogs Dialogs
+@inject NavigationManager Nav
+
+@switch (Dialogs.Current)
+{
+    case MessageModal m:
+        <div class="modal">
+            <div class="modal-box" role="dialog" aria-modal="true">
+                <p>@m.Message</p>
+                <div class="nav">
+                    @if (m.Cancel is not null)
+                    {
+                        <button class="btn" @onclick="() => Dialogs.Close(false)">@m.Cancel</button>
+                    }
+                    <button class="btn @(m.Danger ? "danger" : "primary")" @onclick="() => Dialogs.Close(true)">@m.Ok</button>
+                </div>
+            </div>
+        </div>
+        break;
+    case TermModal t:
+        @* Closes on the button or a tap outside the card. *@
+        <div class="modal" @onclick="() => Dialogs.Close()">
+            <div class="modal-box term-card" role="dialog" aria-modal="true" @onclick:stopPropagation>
+                <div class="term-de">@t.Term.De</div>
+                <div class="term-ru" lang="ru">@t.Term.Ru</div>
+                <button class="btn primary" @onclick="() => Dialogs.Close()">OK</button>
+            </div>
+        </div>
+        break;
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Dialogs.Changed += OnChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    // A dialog belongs to the page that opened it.
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => Dialogs.Close();
+
+    public void Dispose()
+    {
+        Dialogs.Changed -= OnChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

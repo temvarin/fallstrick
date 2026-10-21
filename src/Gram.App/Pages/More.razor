@@ -1,0 +1,84 @@
+@page "/mehr"
+@inject AppState State
+@inject Browser Browser
+@inject Dialogs Dialogs
+@inject TimeProvider Clock
+
+<TopBar Title="Mehr" />
+
+<div class="card">
+    <h2>Neue Karten pro Tag</h2>
+    <div class="stepper">
+        <button class="btn" aria-label="Weniger" @onclick="() => SetNewPerDay(State.Progress.NewPerDay - 5)"><Icon Name="minus" /></button>
+        <span class="big-num display" aria-live="polite">@State.Progress.NewPerDay</span>
+        <button class="btn" aria-label="Mehr" @onclick="() => SetNewPerDay(State.Progress.NewPerDay + 5)"><Icon Name="plus" /></button>
+    </div>
+    <p class="hint">Wiederholungen kommen immer dazu. Weniger neue Karten heißt: mehr Zeit für das, was schon da ist.</p>
+</div>
+
+<div class="card">
+    <h2>Sicherung</h2>
+    <p class="muted">Der Fortschritt liegt nur in diesem Browser. Eine Sicherungsdatei bringt ihn auf ein neues Handy oder zurück, falls der Browser ihn löscht.</p>
+    <p class="muted">Letzte Sicherung: @(State.Progress.LastBackup is { } last ? Dates.Full(last) : "noch keine")</p>
+    <button class="btn primary" @onclick="Export"><Icon Name="download" />Sicherung speichern</button>
+    <label class="btn">
+        <Icon Name="upload" />Sicherung laden
+        <InputFile class="visually-hidden" accept=".json,application/json" OnChange="Import" />
+    </label>
+</div>
+
+<div class="card">
+    <h2>Über diese App</h2>
+    <p>Geübt wird mit Abrufen statt Lesen, in wachsenden Abständen (FSRS) und gemischt aus allen Bereichen – so bleibt am meisten hängen.</p>
+    <p class="muted">Niveaus A1–B1 nach den Goethe-Wortlisten; was dort fehlt, gilt als B2 oder C1. Genus und Plural abgeglichen mit de.wiktionary.org; Rektion mit Grammatik aktiv B2/C1 (Cornelsen), Duden Band 9 und DWDS; Regeln nach Duden Band 4. Alle Beispielsätze sind eigene.</p>
+    <button class="btn danger" @onclick="Reset"><Icon Name="trash" />Fortschritt löschen</button>
+</div>
+
+@code {
+    private const long MaxBackupBytes = 5_000_000;
+
+    private void SetNewPerDay(int count)
+    {
+        State.Progress.SetNewPerDay(count);
+        State.Save();
+    }
+
+    private async Task Export()
+    {
+        var today = Clock.Today();
+        if (await Browser.SaveFileAsync($"{TopBar.AppName.ToLowerInvariant()}-{today:yyyy-MM-dd}.json", ProgressStore.Backup(State.Progress)))
+        {
+            State.Progress.MarkBackedUp(today);
+            State.Save();
+        }
+    }
+
+    private async Task Import(InputFileChangeEventArgs e)
+    {
+        string json;
+        try
+        {
+            using var reader = new StreamReader(e.File.OpenReadStream(MaxBackupBytes));
+            json = await reader.ReadToEndAsync();
+        }
+        catch (IOException)
+        {
+            Dialogs.Alert("Die Datei ließ sich nicht lesen. Ist sie größer als 5 MB?");
+            return;
+        }
+
+        if (ProgressStore.TryRead(json) is not { } progress)
+        {
+            Dialogs.Alert("Das ist keine Sicherung dieser App.");
+            return;
+        }
+        if (await Dialogs.Confirm("Den Fortschritt durch die Sicherung ersetzen?", "Ersetzen", "Abbrechen"))
+            State.Replace(progress);
+    }
+
+    private async Task Reset()
+    {
+        if (await Dialogs.Confirm("Den ganzen Fortschritt löschen? Das lässt sich nicht rückgängig machen.", "Löschen", "Abbrechen", danger: true))
+            State.Replace(new Progress());
+    }
+}

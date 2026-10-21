@@ -1,0 +1,18 @@
+<div class="card prompt">
+    <p class="sentence"><RichText Text="Exercise.Item.Sentence" /></p>
+    <p class="muted">@Exercise.Item.Question</p>
+</div>
+
+<Choices Options="Exercise.Item.Options" Answer="@Exercise.Item.Options[Exercise.Item.Answer]" Wrong="Wrong" Done="Done" OnChoose="OnSubmit" Wide />
+
+@if (Done)
+{
+    <div class="card feedback"><p>@Exercise.Item.Why</p></div>
+}
+
+@code {
+    [Parameter, EditorRequired] public WhoWhomExercise Exercise { get; set; } = null!;
+    [Parameter] public bool Done { get; set; }
+    [Parameter] public IReadOnlyCollection<string> Wrong { get; set; } = [];
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+}

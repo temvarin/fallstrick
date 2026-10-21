@@ -1,0 +1,27 @@
+@inherits LayoutComponentBase
+@inject Browser Browser
+@inject NavigationManager Nav
+
+<header class="topbar">
+    <SectionOutlet SectionName="@TopBar.Section" />
+</header>
+<main aria-live="polite" class="@(InSession ? "" : "with-tabbar")">
+    @Body
+</main>
+@if (!InSession)
+{
+    <TabBar />
+}
+<DialogHost />
+
+@code {
+    // During practice the tab bar would only distract; the top bar leads back.
+    private bool InSession => Nav.ToBaseRelativePath(Nav.Uri).StartsWith("ueben", StringComparison.Ordinal);
+
+    protected override void OnInitialized() => Nav.LocationChanged += (_, _) => StateHasChanged();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) await Browser.ProtectStorageAsync();
+    }
+}

@@ -1,0 +1,63 @@
+@{
+    var sentence = Exercise.Sentence;
+}
+<div class="card prompt">
+    <p class="sentence"><RichText Text="sentence.Before" /><Gap Text="@(Done ? sentence.Answers[0] : null)" Before="sentence.Before" /><RichText Text="sentence.After" /></p>
+</div>
+
+@if (!Done)
+{
+    <form class="typed" @onsubmit="Check" @onsubmit:preventDefault>
+        <input class="search @(Wrong.Count > 0 ? "wrong" : "")" @bind="typed" @bind:event="oninput" aria-label="Präposition, mit Artikel, wo einer fehlt"
+               placeholder="Präposition" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        @if (empty)
+        {
+            <p class="error">Erst etwas eintippen.</p>
+        }
+        <div class="nav">
+            <button type="button" class="btn" @onclick="OnGiveUp">Lösung zeigen</button>
+            <button type="submit" class="btn primary">Prüfen</button>
+        </div>
+    </form>
+}
+else
+{
+    <div class="card feedback">
+        <p><b>@Exercise.Explanation</b></p>
+        <p class="ru-line" lang="ru">@Exercise.Entry.Ru</p>
+        @if (Exercise.Siblings.Count > 0)
+        {
+            <p class="muted">Vergleiche:</p>
+            <ul class="plain compact">
+                @foreach (var other in Exercise.Siblings)
+                {
+                    <li><b>@other.Headword @other.Preposition + @German.Case(other.Case)</b>: @other.Meaning</li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public RektionExercise Exercise { get; set; } = null!;
+    [Parameter] public bool Done { get; set; }
+    [Parameter] public IReadOnlyCollection<string> Wrong { get; set; } = [];
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+    [Parameter] public EventCallback OnGiveUp { get; set; }
+
+    private string typed = "";
+    private bool empty;
+    private RektionExercise? shown;
+
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(shown, Exercise)) return;
+        (shown, typed, empty) = (Exercise, "", false); // a new card starts with an empty field
+    }
+
+    private Task Check()
+    {
+        empty = string.IsNullOrWhiteSpace(typed);
+        return empty ? Task.CompletedTask : OnSubmit.InvokeAsync(typed);
+    }
+}

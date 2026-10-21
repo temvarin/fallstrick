@@ -1,0 +1,34 @@
+@* The page's header, rendered into the layout's top bar, and the browser tab's title. *@
+@inject NavigationManager Nav
+
+<PageTitle>@Title – @AppName</PageTitle>
+<SectionContent SectionName="@Section">
+    @if (Back is not null)
+    {
+        <button class="icon-btn" aria-label="Zurück" @onclick="() => Nav.NavigateTo(Back)"><Icon Name="arrow-left" /></button>
+    }
+    <div class="titles">
+        @if (Kicker is not null)
+        {
+            <div class="kicker">@Kicker</div>
+        }
+        <h1>@Title</h1>
+    </div>
+    @ChildContent
+</SectionContent>
+
+@code {
+    public const string Section = "topbar";
+    public const string AppName = "Fallstrick";
+
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    /// <summary>Small line above the title; makes the title larger (start page).</summary>
+    [Parameter] public string? Kicker { get; set; }
+
+    /// <summary>Where the back button leads (relative to the app's base address); no back button if null.</summary>
+    [Parameter] public string? Back { get; set; }
+
+    /// <summary>Extra content at the end of the bar, e.g. the exam timer.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

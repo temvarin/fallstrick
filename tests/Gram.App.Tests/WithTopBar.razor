@@ -1,0 +1,10 @@
+@* Renders a page together with the top bar it fills (in the app, MainLayout provides it). *@
+@using Gram.App.Components
+@using Microsoft.AspNetCore.Components.Sections
+
+<SectionOutlet SectionName="@TopBar.Section" />
+@ChildContent
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

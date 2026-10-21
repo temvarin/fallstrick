@@ -1,9 +1,11 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Gram.App/Gram.App.csproj" />
     <Project Path="src/Gram.Domain/Gram.Domain.csproj" />
     <Project Path="src/Gram.Pipeline/Gram.Pipeline.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Gram.App.Tests/Gram.App.Tests.csproj" />
     <Project Path="tests/Gram.Domain.Tests/Gram.Domain.Tests.csproj" />
     <Project Path="tests/Gram.Pipeline.Tests/Gram.Pipeline.Tests.csproj" />
   </Folder>

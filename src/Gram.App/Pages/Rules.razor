@@ -1,0 +1,106 @@
+@page "/regeln"
+@inject Catalog Catalog
+
+<TopBar Title="Regeln" />
+
+<nav class="chips" aria-label="Abschnitte">
+    <a class="chip" href="regeln#artikel">Artikel</a>
+    <a class="chip" href="regeln#adjektive">Adjektive</a>
+    <a class="chip" href="regeln#genus">Genus</a>
+</nav>
+
+<section class="card" id="artikel">
+    <h2>Der Artikel in den vier Fällen</h2>
+    <p class="muted">Bestimmter Artikel</p>
+    <DeclensionTable Cell="Definite.Form" />
+    <p class="muted">Unbestimmter Artikel; im Plural mit kein-</p>
+    <DeclensionTable Cell="Indefinite" />
+    <p>Maskulin ändert sich am meisten: der – den – dem – des. Feminin und Plural sind im Nominativ und Akkusativ gleich; der Dativ Plural endet auch am Nomen auf -n (den Kindern).</p>
+</section>
+
+<section class="card" id="adjektive">
+    <h2>Adjektivendungen: die Signal-Regel</h2>
+    <p>Jeder Artikel hat einen <b>Signal-Buchstaben</b>, der Kasus und Genus zeigt:</p>
+    <p><b>de<span class="sig">r</span> · da<span class="sig">s</span> · di<span class="sig">e</span> · de<span class="sig">m</span> · de<span class="sig">n</span> · de<span class="sig">s</span></b></p>
+    <p>Dieses Signal steht <b>genau einmal</b> – am Artikel <b>oder</b> am Adjektiv. Steht es schon am Artikel, endet das Adjektiv nur auf -e oder -en.</p>
+
+    <p class="muted">Wein ist maskulin – das Signal ist r:</p>
+    <div class="signal-rows">
+        <div><b>de<span class="sig">r</span> gute Wein</b><span>der zeigt r → Adjektiv nur -e</span></div>
+        <div><b>ein gute<span class="sig">r</span> Wein</b><span>ein hat kein r → das Adjektiv holt es</span></div>
+        <div><b>gute<span class="sig">r</span> Wein</b><span>kein Artikel → das Adjektiv holt es</span></div>
+    </div>
+    <p class="muted">mit + Dativ – das Signal ist m:</p>
+    <div class="signal-rows">
+        <div><b>mit de<span class="sig">m</span> guten Wein</b><span>dem zeigt m → -en</span></div>
+        <div><b>mit eine<span class="sig">m</span> guten Wein</b><span>einem zeigt m auch → -en</span></div>
+        <div><b>mit gute<span class="sig">m</span> Wein</b><span>kein Artikel → das Adjektiv holt m</span></div>
+    </div>
+    <p class="muted">Einzige Ausnahme: im Genitiv maskulin und neutral ohne Artikel -en statt -es, weil das Nomen das s schon trägt: wegen schlechten Wetters.</p>
+</section>
+
+<section class="card">
+    <h2>Drei Situationen, eine Frage</h2>
+    <div class="chips" role="tablist">
+        @foreach (var inflection in (Inflection[])[Inflection.Weak, Inflection.Mixed, Inflection.Strong])
+        {
+            <button class="chip @(shown == inflection ? "on" : "")" role="tab" aria-selected="@(shown == inflection)" @onclick="() => shown = inflection">@Title(inflection)</button>
+        }
+    </div>
+    @switch (shown)
+    {
+        case Inflection.Weak:
+            <p><b>der, die, das, dieser, jeder, alle, beide …</b> zeigen das Signal immer. Das Adjektiv bekommt nur -e oder -en:</p>
+            <p>-e im Nominativ Singular und bei die/das im Akkusativ – sonst immer -en.</p>
+            break;
+        case Inflection.Mixed:
+            <p><b>ein, kein, mein, dein, unser …</b> zeigen das Signal fast immer – nur an drei Stellen nicht: ein (Mann? Kind?). Dort holt es das Adjektiv: ein guter Mann, ein gutes Kind.</p>
+            break;
+        default:
+            <p><b>Ohne Artikel</b> – und nach viele, wenige, einige, mehrere und Zahlen, die nicht als Artikel zählen – zeigt das Adjektiv das Signal selbst: heißer Tee, mit warmem Wasser, viele gute Ideen.</p>
+            break;
+    }
+    <DeclensionTable Cell="(c, g) => Adjective.Ending(shown, c, g)" Signal="(c, g) => Adjective.ShowsSignal(shown, c, g)" />
+    @if (shown != Inflection.Weak)
+    {
+        <p class="muted">Schwarz: Hier zeigt das Adjektiv das Signal.</p>
+    }
+    <p class="muted">Nach manche und solche im Plural ist beides üblich: manche gute / guten Ideen.</p>
+</section>
+
+<section class="card" id="genus">
+    <h2>Genus an der Endung erkennen</h2>
+    <p>Die meisten Nomen lernt man mit Artikel. Manche Endungen verraten das Genus aber verlässlich, andere nur meistens.</p>
+    <p class="muted">Verlässlich</p>
+    <ul class="plain compact">
+        @foreach (var rule in Catalog.GenderRules.Where(r => r.Reliable))
+        {
+            <li><b>-@rule.Suffix</b> → @Noun.Article(rule.Gender) <span class="muted">(@rule.Example)</span></li>
+        }
+    </ul>
+    <p class="muted">Meistens, mit Ausnahmen</p>
+    <ul class="plain compact">
+        @foreach (var rule in Catalog.GenderRules.Where(r => !r.Reliable))
+        {
+            <li><b>-@rule.Suffix</b> → meist @Noun.Article(rule.Gender) <span class="muted">(@rule.Example)</span></li>
+        }
+    </ul>
+    <p>Bei zusammengesetzten Wörtern bestimmt das letzte Wort den Artikel: das Haus → das Hochhaus, die Tür → die Haustür.</p>
+</section>
+
+@code {
+    private static readonly Determiner Definite = Determiners.Get("der");
+
+    // ein has no plural; kein shows the endings there.
+    private static string? Indefinite(Case @case, GenderNumber column) =>
+        Determiners.Get(column == GenderNumber.Plural ? "kein" : "ein").Form(@case, column);
+
+    private Inflection shown = Inflection.Weak;
+
+    private static string Title(Inflection inflection) => inflection switch
+    {
+        Inflection.Weak => "nach der, die, das",
+        Inflection.Mixed => "nach ein, kein, mein",
+        _ => "ohne Artikel",
+    };
+}

@@ -1,0 +1,10 @@
+@* The blank in a sentence: a line while open, the answer once it is known. *@
+<span class="gap @(Text is null ? "" : "filled")">@(Text is null ? "   " : Before is null ? Text : RichText.AtStart(Text, Before))</span>
+
+@code {
+    /// <summary>The answer to show; null while the gap is open.</summary>
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>The text before the gap in a sentence: at its start the answer is capitalised. Null outside a sentence.</summary>
+    [Parameter] public IReadOnlyList<Segment>? Before { get; set; }
+}

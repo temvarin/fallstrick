@@ -1,0 +1,23 @@
+@* The answer options of a task. After the answer, the wrong choice sinks in, the right one lifts out and the rest fades. *@
+<div class="choices @(Wide ? "wide" : "")">
+    @foreach (var option in Options)
+    {
+        var chosenWrong = Wrong.Contains(option);
+        var css = Done ? (option == Answer ? "lifted" : chosenWrong ? "pressed" : "dim") : chosenWrong ? "pressed" : "";
+        <button class="answer @css" disabled="@(Done || chosenWrong)" @onclick="() => OnChoose.InvokeAsync(option)">@Prefix@option</button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<string> Options { get; set; } = [];
+    [Parameter, EditorRequired] public string Answer { get; set; } = "";
+    [Parameter] public IReadOnlyCollection<string> Wrong { get; set; } = [];
+    [Parameter] public bool Done { get; set; }
+    [Parameter] public EventCallback<string> OnChoose { get; set; }
+
+    /// <summary>Shown before each option: "-" for endings.</summary>
+    [Parameter] public string Prefix { get; set; } = "";
+
+    /// <summary>One option per row, for longer texts.</summary>
+    [Parameter] public bool Wide { get; set; }
+}

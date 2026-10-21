@@ -1,0 +1,52 @@
+@page "/"
+@inject Catalog Catalog
+@inject AppState State
+@inject TimeProvider Clock
+@inject Random Random
+
+<TopBar Title="Heute" Kicker="@Dates.Full(Today)" />
+
+<BackupBanner />
+
+<div class="card hero">
+    @if (session.Total > 0)
+    {
+        <div class="row"><span class="big-num display">@session.Total</span><span class="muted">Karten in dieser Runde</span></div>
+        <p class="muted">@Due fällig, @(session.Total - Math.Min(Due, session.Total)) neu – aus allen Bereichen gemischt.</p>
+        <a class="btn primary" href="ueben">Üben starten</a>
+    }
+    else
+    {
+        <p class="headline">Für heute ist alles geübt.</p>
+        <p class="muted">Morgen gibt es neue Karten und Wiederholungen.</p>
+    }
+</div>
+
+<div class="card areas">
+    @foreach (var (area, name, example) in Areas)
+    {
+        var cards = Catalog.Cards.Where(c => c.Area == area).ToList();
+        <div class="area">
+            <div><b>@name</b><br /><span class="muted">@example</span></div>
+            <div class="end muted">@cards.Count(c => State.Progress.IsDue(c.Key, Today)) fällig<br />@cards.Count(c => !State.Progress.IsNew(c.Key)) / @cards.Count geübt</div>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly (Area, string, string)[] Areas =
+    [
+        (Area.Articles, "Artikel", "der · die · das"),
+        (Area.Cases, "Fälle", "der · des · dem · den"),
+        (Area.Rektion, "Rektion", "bestehen aus / auf / in"),
+        (Area.AdjectiveEndings, "Adjektivendungen", "ein guter · dem guten · alle guten"),
+    ];
+
+    private DateOnly Today => Clock.Today();
+    private Session session = null!;
+
+    private int Due => Catalog.Cards.Count(c => State.Progress.IsDue(c.Key, Today));
+
+    // Only to count what the next session holds; Üben starts its own.
+    protected override void OnInitialized() => session = Session.Start(Catalog.Cards, State.Progress, Today, Random);
+}

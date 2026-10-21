@@ -1,0 +1,20 @@
+<div class="card prompt">
+    <p class="sentence"><RichText Text="Exercise.Frame.Before" /><Gap Text="@(Done ? Exercise.Answer : null)" Before="Exercise.Frame.Before" /><RichText Text="Exercise.Frame.After" /></p>
+</div>
+
+<Choices Options="Exercise.Options" Answer="@Exercise.Answer" Wrong="Wrong" Done="Done" OnChoose="OnSubmit" />
+
+@if (Done)
+{
+    <div class="card feedback">
+        <p>@Exercise.Explanation</p>
+        <DeclensionTable Cell="Determiners.Get(Exercise.Frame.Determiner).Form" Highlight="(Exercise.Frame.Case, Exercise.Frame.Column)" />
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public CaseExercise Exercise { get; set; } = null!;
+    [Parameter] public bool Done { get; set; }
+    [Parameter] public IReadOnlyCollection<string> Wrong { get; set; } = [];
+    [Parameter] public EventCallback<string> OnSubmit { get; set; }
+}
