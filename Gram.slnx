@@ -7,6 +7,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/Gram.App.Tests/Gram.App.Tests.csproj" />
     <Project Path="tests/Gram.Domain.Tests/Gram.Domain.Tests.csproj" />
+    <Project Path="tests/Gram.E2E/Gram.E2E.csproj" />
     <Project Path="tests/Gram.Pipeline.Tests/Gram.Pipeline.Tests.csproj" />
   </Folder>
 </Solution>
