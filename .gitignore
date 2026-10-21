@@ -1,0 +1,7 @@
+# Build output
+bin/
+obj/
+publish/
+
+# Wiktionary pages fetched by `verify` (CC BY-SA, kept out of the repository)
+.cache/
