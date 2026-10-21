@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Test, check data, publish, test in a browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      # Relinks the WebAssembly runtime without culture data (InvariantGlobalization in Gram.App.csproj).
+      - run: dotnet workload install wasm-tools
+      # The browser tests need the published app; they run after the publish below.
+      - run: dotnet test --filter "Category!=E2E"
+      - name: Content valid and wwwroot/data built from it
+        run: dotnet run --project src/Gram.Pipeline -- check
+      - run: dotnet publish src/Gram.App -c Release -o publish
+      - name: Browser tests and accessibility check (Playwright, axe)
+        env:
+          PLAYWRIGHT_CHANNEL: "" # Playwright's own Chromium instead of an installed Edge
+        run: |
+          dotnet build tests/Gram.E2E -c Release
+          pwsh tests/Gram.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+          dotnet test tests/Gram.E2E -c Release --no-build
+      - id: pages
+        if: github.event_name == 'push'
+        uses: actions/configure-pages@v6
+      - name: Serve from the GitHub Pages path
+        if: github.event_name == 'push'
+        working-directory: publish/wwwroot
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: |
+          sed -i "s|<base href=\"/\">|<base href=\"$BASE_PATH/\">|" index.html
+          grep -q "<base href=\"$BASE_PATH/\">" index.html
+          # Pages has no fallback to index.html: its 404 page starts the app on deep links like /regeln.
+          cp index.html 404.html
+      - if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: publish/wwwroot
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
