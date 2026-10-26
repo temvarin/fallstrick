@@ -54,6 +54,7 @@ Then open it once while online so everything is cached for offline use. Updates 
 - **One domain, two consumers.** The pipeline writes the data with the same types the app reads it with; a test reads the JSON the pipeline writes with the app's source-generated reader.
 - **Deterministic tests.** Clock (`TimeProvider`) and randomness are injected: xUnit for the domain and pipeline, bUnit for components, Playwright for the whole app.
 - **Trimming-safe and lean.** Source-generated JSON, no ICU culture data, self-hosted fonts subset to Latin and Cyrillic.
+- **Architecture as tests.** NetArchTest checks the compiled code: the grammar engine knows nothing of cards or progress, pages show grammar only through exercises and their tables, the UI reaches storage and the browser only through services. Card keys, where progress is stored, are locked: a released key can't disappear without a move (`content/card-keys.txt`).
 - **Strict build.** .NET analyzers at the recommended level, warnings are errors, the SDK version pinned in `global.json`.
 
 ## Architecture
@@ -80,6 +81,7 @@ src/
 tests/
   Gram.Domain.Tests/     xUnit
   Gram.Pipeline.Tests/   xUnit
+  Gram.Architecture.Tests/  NetArchTest rules on the compiled code
   Gram.App.Tests/        bUnit component tests
   Gram.E2E/              Playwright and axe against the published app
 content/                 nouns, Rektion entries, sentences, glossary, gender rules, sources
