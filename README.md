@@ -31,7 +31,7 @@ Left out on purpose: colour-coding genders (no solid evidence, and colour here o
 
 ## Features
 
-- **Four areas:** nearly 1,100 nouns from A2 to C1 (with nouns whose gender changes the meaning, like *der/die See*), the article in all cases plus *who does what* sentences where only the article tells (*Den Lehrer sieht der Schüler*), 300 Rektion entries in 43 groups of confusable prepositions, and adjective endings for every cell of the table and after *alle, viele, beide …*.
+- **Four areas:** nearly 1,100 nouns, almost all from A2 to C1 (with nouns whose gender changes the meaning, like *der/die See*), the article in all cases plus *who does what* sentences where only the article tells (*Den Lehrer sieht der Schüler*), 300 Rektion entries in 43 groups of confusable prepositions, and adjective endings for every cell of the table and after *alle, viele, beide …*.
 - **Explanations after every answer:** the gender rule a noun follows or breaks, the case and why, the declension table with the cell highlighted, the other prepositions of the same verb.
 - **Rules pages:** article tables, the signal rule with examples, and the noun endings that predict gender – marked as reliable or only usually right.
 - **Russian help:** every word in a sentence can be tapped for its dictionary form and Russian translation; the word list searches German and Russian.
@@ -54,7 +54,7 @@ Then open it once while online so everything is cached for offline use. Updates 
 - **One domain, two consumers.** The pipeline writes the data with the same types the app reads it with; a test reads the JSON the pipeline writes with the app's source-generated reader.
 - **Deterministic tests.** Clock (`TimeProvider`) and randomness are injected: xUnit for the domain and pipeline, bUnit for components, Playwright for the whole app.
 - **Trimming-safe and lean.** Source-generated JSON, no ICU culture data, self-hosted fonts subset to Latin and Cyrillic.
-- **Architecture as tests.** NetArchTest checks the compiled code: the grammar engine knows nothing of cards or progress, pages show grammar only through exercises and their tables, the UI reaches storage and the browser only through services. Card keys, where progress is stored, are locked: a released key can't disappear without a move (`content/card-keys.txt`).
+- **Architecture as tests.** NetArchTest checks the compiled code: the grammar engine knows nothing of cards or progress, pages show grammar only through exercises and their tables, the UI reaches storage and the browser only through services. Card keys, where progress is stored, are locked: a released key can't disappear unless its line is removed on purpose (`content/card-keys.txt`).
 - **Strict build.** .NET analyzers at the recommended level, warnings are errors, the SDK version pinned in `global.json`.
 
 ## Architecture
@@ -63,29 +63,29 @@ One .NET 10 solution: a Blazor WebAssembly app and a content pipeline that share
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/architecture-dark.svg">
-  <img src="docs/diagrams/architecture-light.svg" alt="Architecture: Gram.Domain holds the grammar engine, FSRS, the session and the content types, used by both Gram.Pipeline and Gram.App. Gram.Pipeline reads the JSON sources in content/, checked against Wiktionary and the Goethe lists, and writes catalog.json; GitHub Actions tests it and deploys to GitHub Pages. On the phone, Gram.App works offline through a service worker, keeps the FSRS memory per card in localStorage and exports backup files.">
+  <img src="docs/diagrams/architecture-light.svg" alt="Architecture: Gram.Domain holds the grammar engine, FSRS, the session and the content types, used by both Gram.Pipeline and Gram.App. Gram.Pipeline reads the JSON sources in content/, checked against Wiktionary and the Goethe lists, writes catalog.json and locks the released card keys; GitHub Actions runs the tests, including the architecture rules, and deploys to GitHub Pages. On the phone, Gram.App works offline through a service worker, keeps the FSRS memory per card in localStorage and exports backup files. Dashed arrows: shared code or reference data; solid arrows: data, checks and deploys.">
 </picture>
 
-- **Gram.Domain** (`src/Gram.Domain`): the grammar engine (articles, adjective endings, the signal rule), the content types, cards and exercises with their hints and explanations, FSRS, the practice session and stored progress with a schema version. No UI, no I/O.
-- **Gram.Pipeline** (`src/Gram.Pipeline`): validates the sources, links every word in a sentence to its translation, writes `catalog.json`; `check` (CI), `words` (untranslated words) and `verify` (outside sources, local only).
-- **Gram.App** (`src/Gram.App`): Razor components on top of the domain – one component per exercise type, the answer flow on the practice page.
+- **Gram.Domain** (`src/Gram.Domain`): the grammar engine (articles, adjective endings, the signal rule, declension tables), the content types, cards with their stable keys, exercises with their hints and explanations, the grading of an answer, FSRS, the practice session and stored progress with a schema version, which changes only through `ProgressService` and is saved on every change. No UI, no I/O.
+- **Gram.Pipeline** (`src/Gram.Pipeline`): validates the sources, links every word in a sentence to its translation, writes `catalog.json` and keeps the list of released card keys; `check` (CI), `words` (untranslated words) and `verify` (outside sources, local only).
+- **Gram.App** (`src/Gram.App`): Razor components on top of the domain – one component per exercise type; the practice page shows an answer's `Attempt` and hands its grade to the session.
 
 ### Repository layout
 
 ```
 src/
-  Gram.Domain/           grammar engine, content types, exercises, FSRS, session, progress
-  Gram.App/              Blazor WebAssembly PWA: pages, components, services
-    wwwroot/data/        generated by the pipeline – do not edit
-  Gram.Pipeline/         console tool: build, check, words, verify
+  Gram.Domain/              grammar engine, content types, exercises, FSRS, session, progress
+  Gram.App/                 Blazor WebAssembly PWA: pages, components, services
+    wwwroot/data/           generated by the pipeline – do not edit
+  Gram.Pipeline/            console tool: build, check, words, verify
 tests/
-  Gram.Domain.Tests/     xUnit
-  Gram.Pipeline.Tests/   xUnit
+  Gram.Domain.Tests/        xUnit
+  Gram.Pipeline.Tests/      xUnit
   Gram.Architecture.Tests/  NetArchTest rules on the compiled code
-  Gram.App.Tests/        bUnit component tests
-  Gram.E2E/              Playwright and axe against the published app
-content/                 nouns, Rektion entries, sentences, glossary, gender rules, sources
-docs/                    screenshots and diagrams for this README
+  Gram.App.Tests/           bUnit component tests
+  Gram.E2E/                 Playwright and axe against the published app
+content/                    nouns, Rektion entries, sentences, glossary, gender rules, sources, released card keys
+docs/                       screenshots and diagrams for this README
 ```
 
 ## Development
@@ -113,14 +113,14 @@ Edit the files in `content/`, then rebuild the app's data:
 dotnet run --project src/Gram.Pipeline -- build
 ```
 
-`build` refuses to write data that breaks a content rule and lists the problems. It also adds new card keys to `content/card-keys.txt`, the list of every key ever released: progress on the phone is stored under these keys, so `build` and CI fail when one disappears (a renamed noun, say). Map the old key to its new one in `content/card-key-moves.json` and the app moves the progress along; map it to `null` to drop it on purpose. Two more commands help with larger changes:
+`build` refuses to write data that breaks a content rule and lists the problems. It also adds new card keys to `content/card-keys.txt`, the list of every key ever released: progress on the phone is stored under these keys, so `build` and CI fail when one disappears (a renamed noun, say). Bring the card back, or remove its line from `card-keys.txt` to drop its progress on purpose. Two more commands help with larger changes:
 
 - `words` lists words in sentences that can't be tapped for a translation yet (add them to `glossary.json`, or to `common-words.txt` if they are too basic to need one).
 - `verify --goethe <folder>` compares every noun with Wiktionary and, given the DWDS copies of the Goethe word lists (`A1.csv`, `A2.csv`, `B1.csv`), with the list it cites. Wiktionary pages are cached in `.cache/` and not committed.
 
 ## Deployment
 
-Every push to `main` runs CI (`.github/workflows/ci.yml`): tests, the data check, a Release publish, and the browser tests against that publish. If everything passes, the app is deployed to GitHub Pages; the deploy job sets the `<base href>` to the Pages path and adds a `404.html` so links like `/regeln` work. One-time setup in the repository: *Settings → Pages → Build and deployment → Source: **GitHub Actions***.
+Every push to `main` runs CI (`.github/workflows/ci.yml`): tests, the data check, a Release publish, and the browser tests against that publish. If everything passes, the app is deployed to GitHub Pages; before that, the build sets the `<base href>` to the Pages path and adds a `404.html` so links like `/regeln` work. One-time setup in the repository: *Settings → Pages → Build and deployment → Source: **GitHub Actions***.
 
 ## Content sources
 
