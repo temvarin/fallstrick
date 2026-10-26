@@ -6,7 +6,10 @@ namespace Gram.Domain;
 /// What the learner knows: the scheduler's memory of every card answered so far, and how many new cards
 /// were started today. Persisted by <see cref="ProgressStore"/>.
 /// </summary>
-/// <remarks>State changes only through its methods; the internal setters exist for deserialization.</remarks>
+/// <remarks>
+/// State changes only inside the domain, through <see cref="ProgressService"/>, which saves every change; the internal
+/// setters exist for deserialization.
+/// </remarks>
 public sealed class Progress
 {
     public const int DefaultNewPerDay = 10;
@@ -27,7 +30,7 @@ public sealed class Progress
     public bool NeedsBackup(DateOnly today) =>
         Memories.Count > 0 && (LastBackup is not { } last || today.DayNumber - last.DayNumber >= BackupReminderDays);
 
-    public void MarkBackedUp(DateOnly today) => LastBackup = today;
+    internal void MarkBackedUp(DateOnly today) => LastBackup = today;
 
     public bool IsNew(CardKey key) => !Memories.ContainsKey(key.Value);
 
@@ -35,13 +38,13 @@ public sealed class Progress
 
     public int NewLeft(DateOnly today) => Math.Max(0, NewPerDay - (NewDay == today ? NewCount : 0));
 
-    public void SetNewPerDay(int count) => NewPerDay = Math.Clamp(count, 0, 50);
+    internal void SetNewPerDay(int count) => NewPerDay = Math.Clamp(count, 0, 50);
 
     /// <summary>
     /// Hands the memory of card keys from earlier releases to the cards that replaced them. A card that already has
     /// its own memory keeps it.
     /// </summary>
-    public void Move(IReadOnlyDictionary<string, string> moves)
+    internal void Move(IReadOnlyDictionary<string, string> moves)
     {
         foreach (var (from, to) in moves)
         {
@@ -49,7 +52,7 @@ public sealed class Progress
         }
     }
 
-    public void Record(CardKey key, Rating rating, DateOnly today, Random? fuzz)
+    internal void Record(CardKey key, Rating rating, DateOnly today, Random? fuzz)
     {
         if (!Memories.TryGetValue(key.Value, out var memory))
         {

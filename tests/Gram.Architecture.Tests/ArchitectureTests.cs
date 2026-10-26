@@ -11,8 +11,9 @@ namespace Gram.Architecture.Tests;
 /// <summary>
 /// The structure the code must keep, checked on the compiled code: which part may use which. A rule written only in a
 /// README erodes one convenient call at a time. Each rule says why it exists. Some rules are kept by the compiler
-/// instead: the project references (the domain references nothing), and card keys can only be made by
-/// <see cref="CardKey"/> because its constructor is internal.
+/// instead: the project references (the domain references nothing), card keys can only be made by
+/// <see cref="CardKey"/>, and progress can only change through <see cref="ProgressService"/>, which saves every change
+/// (their constructor and changing methods are internal).
 /// </summary>
 public class ArchitectureTests
 {
@@ -66,7 +67,8 @@ public class ArchitectureTests
     [Fact]
     public void The_ui_reaches_storage_network_and_javascript_only_through_services() => Holds(
         Ui().ShouldNot().HaveDependencyOnAny(
-            "Gram.Domain.IKeyValueStore", "Gram.App.Services.LocalStorage", "System.Net.Http", "Microsoft.JSInterop"),
+            "Gram.Domain.IKeyValueStore", "Gram.Domain.ProgressStore", "Gram.App.Services.LocalStorage", "System.Net.Http",
+            "Microsoft.JSInterop"),
         "Pages and components get storage and the browser from services, which tests replace with fakes "
         + "(AppTestContext). Browser features go into Services/Browser.cs and wwwroot/browser.js.");
 

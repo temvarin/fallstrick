@@ -9,7 +9,7 @@ public static class ServiceRegistration
         .AddSingleton(catalog)
         .AddSingleton<IKeyValueStore, LocalStorage>()
         .AddSingleton<ProgressStore>()
-        .AddSingleton<AppState>()
+        .AddSingleton<ProgressService>()
         .AddSingleton<Dialogs>()
         .AddSingleton<Browser>()
         .AddSingleton(TimeProvider.System)

@@ -1,6 +1,6 @@
 @page "/ueben"
 @inject Catalog Catalog
-@inject AppState State
+@inject ProgressService Learner
 @inject TimeProvider Clock
 @inject Random Random
 
@@ -82,7 +82,7 @@ else
 
     private void Start()
     {
-        session = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random);
+        session = Learner.StartSession(Clock.Today(), Random);
         Show();
     }
 
@@ -90,22 +90,16 @@ else
     {
         attempt = session!.Current is { } card ? new Attempt(Catalog.Exercise(card, Random)) : null;
         // More due or new cards than fit into one session.
-        if (attempt is null) more = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random).Total > 0;
+        if (attempt is null) more = Learner.NextSessionSize(Clock.Today()) > 0;
     }
 
+    // The answer is recorded (and saved) right away, so closing the app on the feedback screen loses nothing.
     private void Submit(string answer)
     {
-        if (attempt!.Submit(answer) is { } rating) Record(rating);
+        if (attempt!.Submit(answer) is { } rating) session!.Answer(rating);
     }
 
-    private void GiveUp() => Record(attempt!.GiveUp());
-
-    // The answer is recorded right away, so closing the app on the feedback screen loses nothing.
-    private void Record(Rating rating)
-    {
-        session!.Answer(rating);
-        State.Save();
-    }
+    private void GiveUp() => session!.Answer(attempt!.GiveUp());
 
     private void Next() => Show();
 

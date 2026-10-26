@@ -37,7 +37,7 @@ public abstract class AppTestContext : BunitContext
         Services.AddSingleton(new Random(42));
     }
 
-    protected Progress Progress => Services.GetRequiredService<AppState>().Progress;
+    protected Progress Progress => Services.GetRequiredService<ProgressService>().Progress;
     protected Dialogs Dialogs => Services.GetRequiredService<Dialogs>();
 
     protected static void Choose(IRenderedComponent<WithTopBar> page, string option) =>

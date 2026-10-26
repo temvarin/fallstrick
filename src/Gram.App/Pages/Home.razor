@@ -1,18 +1,17 @@
 @page "/"
 @inject Catalog Catalog
-@inject AppState State
+@inject ProgressService Learner
 @inject TimeProvider Clock
-@inject Random Random
 
 <TopBar Title="Heute" Kicker="@Dates.Full(Today)" />
 
 <BackupBanner />
 
 <div class="card hero">
-    @if (session.Total > 0)
+    @if (size > 0)
     {
-        <div class="row"><span class="big-num display">@session.Total</span><span class="muted">Karten in dieser Runde</span></div>
-        <p class="muted">@Due fällig, @(session.Total - Math.Min(Due, session.Total)) neu – aus allen Bereichen gemischt.</p>
+        <div class="row"><span class="big-num display">@size</span><span class="muted">Karten in dieser Runde</span></div>
+        <p class="muted">@Due fällig, @(size - Math.Min(Due, size)) neu – aus allen Bereichen gemischt.</p>
         <a class="btn primary" href="ueben">Üben starten</a>
     }
     else
@@ -28,7 +27,7 @@
         var cards = Catalog.Cards.Where(c => c.Area == area).ToList();
         <div class="area">
             <div><b>@name</b><br /><span class="muted">@example</span></div>
-            <div class="end muted">@cards.Count(c => State.Progress.IsDue(c.Key, Today)) fällig<br />@cards.Count(c => !State.Progress.IsNew(c.Key)) / @cards.Count geübt</div>
+            <div class="end muted">@cards.Count(c => Learner.Progress.IsDue(c.Key, Today)) fällig<br />@cards.Count(c => !Learner.Progress.IsNew(c.Key)) / @cards.Count geübt</div>
         </div>
     }
 </div>
@@ -43,10 +42,9 @@
     ];
 
     private DateOnly Today => Clock.Today();
-    private Session session = null!;
+    private int size;
 
-    private int Due => Catalog.Cards.Count(c => State.Progress.IsDue(c.Key, Today));
+    private int Due => Catalog.Cards.Count(c => Learner.Progress.IsDue(c.Key, Today));
 
-    // Only to count what the next session holds; Üben starts its own.
-    protected override void OnInitialized() => session = Session.Start(Catalog.Cards, State.Progress, Today, Random);
+    protected override void OnInitialized() => size = Learner.NextSessionSize(Today);
 }

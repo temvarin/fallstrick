@@ -15,10 +15,11 @@ public sealed class Session
     readonly Progress _progress;
     readonly DateOnly _today;
     readonly Random _random;
+    readonly Action? _recorded;
 
-    Session(List<Card> queue, Progress progress, DateOnly today, Random random)
+    Session(List<Card> queue, Progress progress, DateOnly today, Random random, Action? recorded)
     {
-        (_queue, _progress, _today, _random) = (queue, progress, today, random);
+        (_queue, _progress, _today, _random, _recorded) = (queue, progress, today, random, recorded);
         Total = queue.Count;
     }
 
@@ -35,12 +36,21 @@ public sealed class Session
 
     public bool IsFinished => _queue.Count == 0;
 
+    /// <summary>Started by <see cref="ProgressService.StartSession"/>, which saves every recorded answer.</summary>
     /// <param name="cards">All cards of the catalog, in the order new ones should be introduced.</param>
-    public static Session Start(IReadOnlyList<Card> cards, Progress progress, DateOnly today, Random random)
+    /// <param name="recorded">Called after an answer has changed <paramref name="progress"/>.</param>
+    internal static Session Start(IReadOnlyList<Card> cards, Progress progress, DateOnly today, Random random, Action? recorded = null)
     {
         var due = cards.Where(c => progress.IsDue(c.Key, today)).OrderBy(_ => random.Next()).Take(Size).ToList();
         var fresh = NewCards(cards, progress, Math.Min(progress.NewLeft(today), Size - due.Count));
-        return new Session(Interleave([.. due, .. fresh]), progress, today, random);
+        return new Session(Interleave([.. due, .. fresh]), progress, today, random, recorded);
+    }
+
+    /// <summary>How many different cards a session started now would hold; the same as <see cref="Start"/>, without starting one.</summary>
+    internal static int SizeFor(IReadOnlyList<Card> cards, Progress progress, DateOnly today)
+    {
+        var due = Math.Min(cards.Count(c => progress.IsDue(c.Key, today)), Size);
+        return due + NewCards(cards, progress, Math.Min(progress.NewLeft(today), Size - due)).Count;
     }
 
     public void Answer(Rating rating)
@@ -50,6 +60,7 @@ public sealed class Session
         if (_scheduled.Add(card.Key))
         {
             _progress.Record(card.Key, rating, _today, _random);
+            _recorded?.Invoke();
             if (rating == Rating.Good) RightFirstTime++;
         }
         if (rating == Rating.Again) _queue.Insert(Math.Min(ComeBackAfter, _queue.Count), card);

@@ -1,12 +1,12 @@
 @* Reminds the learner that the progress lives only in this browser until it is backed up. *@
-@inject AppState State
+@inject ProgressService Learner
 @inject TimeProvider Clock
 
-@if (State.Progress.NeedsBackup(Clock.Today()))
+@if (Learner.Progress.NeedsBackup(Clock.Today()))
 {
     <a class="banner" href="mehr">
         <Icon Name="cloud-upload" />
-        <span>@(State.Progress.LastBackup is null ? "Noch keine Sicherung" : "Letzte Sicherung vor über 30 Tagen") – jetzt sichern</span>
+        <span>@(Learner.Progress.LastBackup is null ? "Noch keine Sicherung" : "Letzte Sicherung vor über 30 Tagen") – jetzt sichern</span>
         <Icon Name="chevron-right" />
     </a>
 }

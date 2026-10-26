@@ -10,3 +10,9 @@ public static class Dates
     /// <summary>"Dienstag, 20. Oktober"</summary>
     public static string Full(DateOnly date) => $"{Weekdays[(int)date.DayOfWeek]}, {date.Day}. {Months[date.Month - 1]}";
 }
+
+public static class Clock
+{
+    /// <summary>The learner's calendar day. Never stored: the app may stay open across midnight.</summary>
+    public static DateOnly Today(this TimeProvider clock) => DateOnly.FromDateTime(clock.GetLocalNow().DateTime);
+}
