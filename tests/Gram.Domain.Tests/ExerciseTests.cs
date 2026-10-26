@@ -6,8 +6,11 @@ public class ExerciseTests
 {
     static Segment[] Text(string text) => [new Segment(text)];
 
-    static Frame Frame(string det, Case @case, GenderNumber column, string? adjective = null, string why = "mit + Dativ") =>
-        new(Text("Ich fahre mit "), Text(" Freund weg."), det, @case, column, why, adjective);
+    static CaseFrame CaseSentence(string det, Case @case, GenderNumber column, string why = "mit + Dativ") =>
+        new(Text("Ich fahre mit "), Text(" Freund weg."), det, @case, column, why);
+
+    static EndingFrame EndingSentence(string det, Case @case, GenderNumber column, string adjective) =>
+        new(Text("Ich fahre mit "), Text(" Freund weg."), det, @case, column, "mit + Dativ", adjective);
 
     static readonly Noun TeilM = new("Teil", Gender.Masculine, "Teile", "ein Stück vom Ganzen", "часть", Level.A1);
     static readonly Noun TeilN = new("Teil", Gender.Neuter, "Teile", "ein Gegenstand", "деталь", Level.B1);
@@ -27,7 +30,8 @@ public class ExerciseTests
     static readonly RektionEntry Aus = Bestehen("aus", "aus", "sich zusammensetzen aus", "Es geht um Bestandteile.", "aus");
     static readonly RektionEntry Auf = Bestehen("auf", "auf", "etwas unbedingt fordern", "Es geht um eine Forderung.", "auf");
 
-    static Catalog Catalog(params Frame[] frames) => new([TeilM, TeilN, Zeitung, Messer], [Aus, Auf], frames, [], Rules, []);
+    static Catalog Catalog(params Frame[] frames) =>
+        new([TeilM, TeilN, Zeitung, Messer], [Aus, Auf], [.. frames.OfType<CaseFrame>()], [.. frames.OfType<EndingFrame>()], [], Rules, []);
 
     [Fact]
     public void Nouns_come_by_level_and_the_same_spelling_makes_one_group_of_confusable_cards()
@@ -42,10 +46,10 @@ public class ExerciseTests
     public void Frames_become_one_card_per_table_cell_and_one_per_quantifier()
     {
         var catalog = Catalog(
-            Frame("ein", Case.Dative, GenderNumber.Masculine, "gut"),
-            Frame("kein", Case.Dative, GenderNumber.Masculine, "alt"),
-            Frame("der", Case.Dative, GenderNumber.Masculine),
-            Frame("alle", Case.Dative, GenderNumber.Plural, "neu"));
+            EndingSentence("ein", Case.Dative, GenderNumber.Masculine, "gut"),
+            EndingSentence("kein", Case.Dative, GenderNumber.Masculine, "alt"),
+            CaseSentence("der", Case.Dative, GenderNumber.Masculine),
+            EndingSentence("alle", Case.Dative, GenderNumber.Plural, "neu"));
 
         Assert.Equal(["fall/der/dat/m", "adjektiv/gemischt/dat/m", "adjektiv/nach/alle"],
             catalog.Cards.Where(c => c.Area is Area.Cases or Area.AdjectiveEndings).Select(c => c.Key.Value));
@@ -65,7 +69,7 @@ public class ExerciseTests
     [Fact]
     public void Endings_are_rules_only_in_words_of_more_than_one_syllable()
     {
-        var rules = new Catalog([], [], [], [], [new GenderRule("e", Gender.Feminine, false, "die Lampe")], []);
+        var rules = new Catalog([], [], [], [], [], [new GenderRule("e", Gender.Feminine, false, "die Lampe")], []);
 
         Assert.Null(rules.GenderRuleFor(new Noun("See", Gender.Masculine, "Seen", null, "", Level.A1)));
         Assert.NotNull(rules.GenderRuleFor(new Noun("Käse", Gender.Masculine, "Käse", null, "", Level.A2)));
@@ -84,7 +88,7 @@ public class ExerciseTests
     [Fact]
     public void A_case_exercise_offers_every_form_of_its_article()
     {
-        var exercise = new CaseExercise(new Card(CardKey.ArticleForm(false, Case.Dative, GenderNumber.Masculine), Area.Cases), Frame("ein", Case.Dative, GenderNumber.Masculine));
+        var exercise = new CaseExercise(new Card(CardKey.ArticleForm(false, Case.Dative, GenderNumber.Masculine), Area.Cases), CaseSentence("ein", Case.Dative, GenderNumber.Masculine));
 
         Assert.Equal("einem", exercise.Answer);
         Assert.Equal(["ein", "eine", "einem", "einen", "einer", "eines"], exercise.Options);
@@ -103,7 +107,7 @@ public class ExerciseTests
     [InlineData("alle", Case.Nominative, GenderNumber.Plural, "„alle“ zeigt das Signal e – das Adjektiv endet nur auf -en: alle guten.")]
     public void An_ending_explanation_says_who_shows_the_signal(string det, Case @case, GenderNumber column, string expected)
     {
-        var exercise = new EndingExercise(new Card(Gram.Domain.Catalog.KeyOf(Frame(det, @case, column, "gut")), Area.AdjectiveEndings), Frame(det, @case, column, "gut"));
+        var exercise = new EndingExercise(new Card(Gram.Domain.Catalog.KeyOf(EndingSentence(det, @case, column, "gut")), Area.AdjectiveEndings), EndingSentence(det, @case, column, "gut"));
 
         Assert.Equal(expected, exercise.Explanation);
         Assert.True(exercise.IsRight(Adjective.Ending(Determiners.Get(det).Adjective, @case, column)));

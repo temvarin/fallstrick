@@ -146,4 +146,17 @@ public class DeclensionTests
     [InlineData("müde", "müd")]
     public void Some_adjectives_change_their_stem_before_an_ending(string adjective, string stem) =>
         Assert.Equal(stem, Adjective.Stem(adjective));
+
+    [Fact]
+    public void A_noun_has_its_genitive_plural_and_dative_plural_forms()
+    {
+        Assert.Equal(
+            [("Kind", GenderNumber.Neuter), ("Kinds", GenderNumber.Neuter), ("Kindes", GenderNumber.Neuter), ("Kinder", GenderNumber.Plural), ("Kindern", GenderNumber.Plural)],
+            NounForms.Of("Kind", Gender.Neuter, "Kinder"));
+        Assert.Equal([("Zeitung", GenderNumber.Feminine), ("Zeitungen", GenderNumber.Plural)], NounForms.Of("Zeitung", Gender.Feminine, "Zeitungen"));
+    }
+
+    [Fact]
+    public void An_n_declension_form_can_be_singular_or_plural() =>
+        Assert.Contains(("Nachbarn", GenderNumber.Masculine), NounForms.Of("Nachbar", Gender.Masculine, "Nachbarn"));
 }

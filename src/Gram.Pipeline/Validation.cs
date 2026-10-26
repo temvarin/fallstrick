@@ -76,7 +76,7 @@ internal static partial class Validation
         foreach (var group in src.Rektion.Where(r => r.Group is not null).GroupBy(r => r.Group).Where(g => g.Count() < 2))
             problems.Add($"rektion.json: group \"{group.Key}\" has only one entry");
 
-        var nounForms = NounForms(src.Nouns);
+        var nounForms = KnownNounForms(src.Nouns);
         foreach (var f in src.Frames)
         {
             var where = $"frames.json \"{f.Text}\"";
@@ -117,23 +117,15 @@ internal static partial class Validation
         return problems;
     }
 
-    /// <summary>Every form of every listed noun, with the column it stands for: singular forms by gender, plural forms as plural.</summary>
-    static Dictionary<string, HashSet<GenderNumber>> NounForms(IEnumerable<SourceNoun> nouns)
+    /// <summary>Every form of every listed noun, with the columns it can stand for (<see cref="NounForms"/>).</summary>
+    static Dictionary<string, HashSet<GenderNumber>> KnownNounForms(IEnumerable<SourceNoun> nouns)
     {
         var forms = new Dictionary<string, HashSet<GenderNumber>>(StringComparer.Ordinal);
-        void Add(string form, GenderNumber column) => (forms.TryGetValue(form, out var set) ? set : forms[form] = []).Add(column);
         foreach (var n in nouns)
         {
             if (Codes.Gender(n.G) is not { } gender) continue;
-            Add(n.De, (GenderNumber)gender);
-            if (gender != Gender.Feminine) { Add(n.De + "s", (GenderNumber)gender); Add(n.De + "es", (GenderNumber)gender); }
-            if (n.Pl is { } plural)
-            {
-                Add(plural, GenderNumber.Plural);
-                // n-declension: des / dem / den Nachbarn look like the plural.
-                if (gender == Gender.Masculine && (plural == n.De + "n" || plural == n.De + "en")) Add(plural, GenderNumber.Masculine);
-                if (!plural.EndsWith('n') && !plural.EndsWith('s')) Add(plural + "n", GenderNumber.Plural);
-            }
+            foreach (var (form, column) in NounForms.Of(n.De, gender, n.Pl))
+                (forms.TryGetValue(form, out var set) ? set : forms[form] = []).Add(column);
         }
         return forms;
     }

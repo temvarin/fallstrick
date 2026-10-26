@@ -17,7 +17,7 @@ internal static class Commands
         File.WriteAllText(Path.Combine(paths.AppData, CatalogFile), json);
         File.WriteAllText(Path.Combine(paths.Sources, KeyLock.File), keys);
         Console.WriteLine($"wwwroot/data/{CatalogFile}: {catalog.Nouns.Count} nouns, {catalog.Rektion.Count} Rektion entries, " +
-            $"{catalog.Frames.Count} frames, {catalog.WhoWhom.Count} who-whom sentences, {catalog.Cards.Count} cards");
+            $"{catalog.CaseFrames.Count + catalog.EndingFrames.Count} frames, {catalog.WhoWhom.Count} who-whom sentences, {catalog.Cards.Count} cards");
         return 0;
     }
 

@@ -15,17 +15,24 @@ public sealed class Determiner
 
     readonly Func<Case, GenderNumber, string> _form;
 
-    Determiner(string lemma, Inflection adjective, Numbers numbers, Func<Case, GenderNumber, string> form)
+    Determiner(string lemma, Inflection adjective, Numbers numbers, Func<Case, GenderNumber, string> form, bool isQuantifier = false)
     {
         Lemma = lemma;
         Adjective = adjective;
         Numbers = numbers;
+        IsQuantifier = isQuantifier;
         _form = form;
     }
 
     public string Lemma { get; }
     public Inflection Adjective { get; }
     public Numbers Numbers { get; }
+
+    /// <summary>
+    /// alle, viele, zwei …: a word of quantity after which adjective endings are a classic stumbling block, so it is
+    /// practised on its own rather than as one cell of a table.
+    /// </summary>
+    public bool IsQuantifier { get; }
 
     /// <summary>The form in this case and column, or null where it doesn't exist (ein in the plural).</summary>
     public string? Form(Case @case, GenderNumber column)
@@ -41,13 +48,19 @@ public sealed class Determiner
     internal static Determiner LikeDer(string lemma, string stem, Inflection adjective, Numbers numbers) =>
         new(lemma, adjective, numbers, (c, g) => stem + DerWord[c, g]);
 
+    internal static Determiner Quantifier(string lemma, string stem, Inflection adjective) =>
+        new(lemma, adjective, Numbers.PluralOnly, (c, g) => stem + DerWord[c, g], isQuantifier: true);
+
+    internal static Determiner Number(string lemma) =>
+        new(lemma, Inflection.Strong, Numbers.PluralOnly, (_, _) => lemma, isQuantifier: true);
+
     // euer loses its second e before an ending: eure, eurem.
     internal static Determiner LikeEin(string lemma, Numbers numbers = Numbers.Both) =>
         new(lemma, Inflection.Mixed, numbers, (c, g) =>
             EinWord[c, g] is var ending && ending.Length > 0 && lemma == "euer" ? "eur" + ending : lemma + ending);
 
-    internal static Determiner Invariable(string lemma, Numbers numbers) =>
-        new(lemma, Inflection.Strong, numbers, (_, _) => lemma);
+    // No determiner at all: the adjective has to show case and gender itself.
+    internal static Determiner None() => new("", Inflection.Strong, Numbers.Both, (_, _) => "");
 }
 
 public static class Determiners
@@ -59,13 +72,13 @@ public static class Determiners
         Determiner.LikeDer("jener", "jen", Inflection.Weak, Numbers.Both),
         Determiner.LikeDer("welcher", "welch", Inflection.Weak, Numbers.Both),
         Determiner.LikeDer("jeder", "jed", Inflection.Weak, Numbers.SingularOnly),
-        Determiner.LikeDer("alle", "all", Inflection.Weak, Numbers.PluralOnly),
-        Determiner.LikeDer("beide", "beid", Inflection.Weak, Numbers.PluralOnly),
-        Determiner.LikeDer("sämtliche", "sämtlich", Inflection.Weak, Numbers.PluralOnly),
-        Determiner.LikeDer("viele", "viel", Inflection.Strong, Numbers.PluralOnly),
-        Determiner.LikeDer("wenige", "wenig", Inflection.Strong, Numbers.PluralOnly),
-        Determiner.LikeDer("einige", "einig", Inflection.Strong, Numbers.PluralOnly),
-        Determiner.LikeDer("mehrere", "mehrer", Inflection.Strong, Numbers.PluralOnly),
+        Determiner.Quantifier("alle", "all", Inflection.Weak),
+        Determiner.Quantifier("beide", "beid", Inflection.Weak),
+        Determiner.Quantifier("sämtliche", "sämtlich", Inflection.Weak),
+        Determiner.Quantifier("viele", "viel", Inflection.Strong),
+        Determiner.Quantifier("wenige", "wenig", Inflection.Strong),
+        Determiner.Quantifier("einige", "einig", Inflection.Strong),
+        Determiner.Quantifier("mehrere", "mehrer", Inflection.Strong),
         Determiner.LikeEin("ein", Numbers.SingularOnly),
         Determiner.LikeEin("kein"),
         Determiner.LikeEin("mein"),
@@ -74,11 +87,10 @@ public static class Determiners
         Determiner.LikeEin("ihr"),
         Determiner.LikeEin("unser"),
         Determiner.LikeEin("euer"),
-        Determiner.Invariable("zwei", Numbers.PluralOnly),
-        Determiner.Invariable("drei", Numbers.PluralOnly),
-        Determiner.Invariable("vier", Numbers.PluralOnly),
-        // No determiner at all: the adjective has to show case and gender itself.
-        Determiner.Invariable("", Numbers.Both),
+        Determiner.Number("zwei"),
+        Determiner.Number("drei"),
+        Determiner.Number("vier"),
+        Determiner.None(),
     }.ToDictionary(d => d.Lemma);
 
     public static IEnumerable<Determiner> All => ByLemma.Values;

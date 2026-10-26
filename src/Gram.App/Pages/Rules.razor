@@ -12,9 +12,9 @@
 <section class="card" id="artikel">
     <h2>Der Artikel in den vier Fällen</h2>
     <p class="muted">Bestimmter Artikel</p>
-    <DeclensionTable Cell="Definite.Form" />
+    <DeclensionTable Table="Paradigm.Definite" />
     <p class="muted">Unbestimmter Artikel; im Plural mit kein-</p>
-    <DeclensionTable Cell="Indefinite" />
+    <DeclensionTable Table="Paradigm.Indefinite" />
     <p>Maskulin ändert sich am meisten: der – den – dem – des. Feminin und Plural sind im Nominativ und Akkusativ gleich; der Dativ Plural endet auch am Nomen auf -n (den Kindern).</p>
 </section>
 
@@ -60,7 +60,7 @@
             <p><b>Ohne Artikel</b> – und nach viele, wenige, einige, mehrere und Zahlen, die nicht als Artikel zählen – zeigt das Adjektiv das Signal selbst: heißer Tee, mit warmem Wasser, viele gute Ideen.</p>
             break;
     }
-    <DeclensionTable Cell="(c, g) => Adjective.Ending(shown, c, g)" Signal="(c, g) => Adjective.ShowsSignal(shown, c, g)" />
+    <DeclensionTable Table="Paradigm.Endings(shown)" />
     @if (shown != Inflection.Weak)
     {
         <p class="muted">Schwarz: Hier zeigt das Adjektiv das Signal.</p>
@@ -89,12 +89,6 @@
 </section>
 
 @code {
-    private static readonly Determiner Definite = Determiners.Get("der");
-
-    // ein has no plural; kein shows the endings there.
-    private static string? Indefinite(Case @case, GenderNumber column) =>
-        Determiners.Get(column == GenderNumber.Plural ? "kein" : "ein").Form(@case, column);
-
     private Inflection shown = Inflection.Weak;
 
     private static string Title(Inflection inflection) => inflection switch

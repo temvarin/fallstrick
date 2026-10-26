@@ -93,6 +93,16 @@ public class PipelineTests
     }
 
     [Fact]
+    public void A_plural_spelled_like_the_singular_shows_the_noun_once_when_tapped()
+    {
+        var data = DataBuilder.Build(Data(
+            [new SourceNoun("Fenster", "n", "Fenster", null, "окно", "A1", ["duden"])],
+            whoWhom: [new("x", "Die Fenster sind offen.", "Wer?", ["a", "b"], 0, "")]));
+
+        Assert.Equal(new Term("das Fenster, die Fenster", "окно"), Assert.Single(data.Terms));
+    }
+
+    [Fact]
     public void A_spelling_with_two_genders_shows_both_when_tapped()
     {
         var data = DataBuilder.Build(Data(
@@ -111,7 +121,7 @@ public class PipelineTests
 
         Assert.Equal(data.Nouns, read.Nouns);
         Assert.Equal("aus", read.Rektion[0].Sentences[0].Answers[0]);
-        Assert.Equal("alt", read.Frames[0].Adjective);
+        Assert.Equal("alt", read.EndingFrames[0].Adjective);
         Assert.Equal(3, read.ToCatalog().Cards.Count);
     }
 

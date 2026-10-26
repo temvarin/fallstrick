@@ -12,14 +12,12 @@
 
 @if (Done)
 {
-    var inflection = Determiners.Get(frame.Determiner).Adjective;
     <div class="card feedback">
         <p><b>Wer zeigt das Signal?</b></p>
         <p>@Exercise.Explanation</p>
-        <p class="muted">Endungen @Name(inflection):</p>
-        <DeclensionTable Cell="(c, g) => Adjective.Ending(inflection, c, g)" Highlight="(frame.Case, frame.Column)"
-                         Signal="(c, g) => Adjective.ShowsSignal(inflection, c, g)" />
-        @if (inflection != Inflection.Weak)
+        <p class="muted">Endungen @Name(Exercise.Inflection):</p>
+        <DeclensionTable Table="Exercise.Table" Highlight="(frame.Case, frame.Column)" />
+        @if (Exercise.Inflection != Inflection.Weak)
         {
             <p class="muted">Schwarz: Hier zeigt das Adjektiv das Signal.</p>
         }

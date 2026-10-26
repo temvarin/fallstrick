@@ -25,10 +25,14 @@ internal static class DataBuilder
             r.Id, r.De, r.Prep, Codes.Case(r.Case)!.Value, r.Meaning, r.Hint, r.Ru, Codes.Level(r.Level)!.Value,
             r.Sentences.Select(Gap).ToList(), r.Group)).ToList();
 
+        // In the order of frames.json, so tappable words are numbered as they come.
         var frames = src.Frames.Select(f =>
         {
             var gap = Gap(f.Text);
-            return new Frame(gap.Before, gap.After, f.Det, Codes.Case(f.Case)!.Value, Codes.Column(f.G)!.Value, f.Why, f.Adj);
+            var (@case, column) = (Codes.Case(f.Case)!.Value, Codes.Column(f.G)!.Value);
+            return f.Adj is null
+                ? (Frame)new CaseFrame(gap.Before, gap.After, f.Det, @case, column, f.Why)
+                : new EndingFrame(gap.Before, gap.After, f.Det, @case, column, f.Why, f.Adj);
         }).ToList();
 
         var whoWhom = src.WhoWhom.Select(w => new WhoWhom(w.Id, words.Segments(w.Text), w.Question, w.Options, w.Answer, w.Why)).ToList();
@@ -40,6 +44,6 @@ internal static class DataBuilder
             .Where(m => m.Value is not null).OrderBy(m => m.Key, StringComparer.Ordinal).ToDictionary(m => m.Key, m => m.Value!);
 
         untranslated = words.Untranslated;
-        return new CatalogData(nouns, rektion, frames, whoWhom, rules, words.Used.ToList(), moves.Count > 0 ? moves : null);
+        return new CatalogData(nouns, rektion, [.. frames.OfType<CaseFrame>()], [.. frames.OfType<EndingFrame>()], whoWhom, rules, words.Used.ToList(), moves.Count > 0 ? moves : null);
     }
 }

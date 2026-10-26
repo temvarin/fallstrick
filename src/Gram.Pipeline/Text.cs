@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Gram.Domain;
+using Gram.Domain.Grammar;
 
 namespace Gram.Pipeline;
 
@@ -32,8 +33,12 @@ internal sealed partial class Words
     {
         var byForm = new Dictionary<string, List<Noun>>(StringComparer.Ordinal);
         foreach (var (noun, source) in nouns.Zip(sources))
-            foreach (var form in NounForms(noun, source.Forms ?? []))
+        {
+            // Distinct: a plural can look like a singular form (der Artikel, die Artikel; das Team, des Teams).
+            var forms = NounForms.Of(noun.Lemma, noun.Gender, noun.Plural).Select(f => f.Form).Concat(source.Forms ?? []).Distinct();
+            foreach (var form in forms)
                 (byForm.TryGetValue(form, out var list) ? list : byForm[form] = []).Add(noun);
+        }
 
         // One spelling, two genders (der Teil, das Teil): one term showing both.
         foreach (var (form, list) in byForm)
@@ -86,23 +91,6 @@ internal sealed partial class Words
     }
 
     static string Display(Noun noun) => noun.Plural is null ? noun.WithArticle : $"{noun.WithArticle}, die {noun.Plural}";
-
-    /// <summary>Lemma, plural, dative plural (Kindern) and genitive singular (des Tages, des Kindes) plus any listed extras.</summary>
-    internal static IEnumerable<string> NounForms(Noun noun, IEnumerable<string> extra)
-    {
-        yield return noun.Lemma;
-        if (noun.Plural is { } plural)
-        {
-            yield return plural;
-            if (!plural.EndsWith('n') && !plural.EndsWith('s')) yield return plural + "n";
-        }
-        if (noun.Gender != Domain.Grammar.Gender.Feminine)
-        {
-            yield return noun.Lemma + "s";
-            yield return noun.Lemma + "es";
-        }
-        foreach (var form in extra) yield return form;
-    }
 
     [GeneratedRegex(@"\p{L}+(?:-\p{L}+)*")]
     private static partial Regex Word();

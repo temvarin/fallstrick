@@ -46,13 +46,24 @@ public sealed record RektionEntry(
 }
 
 /// <summary>
-/// A sentence with a noun phrase to complete: the article form (case practice) or, with <see cref="Adjective"/>, the adjective
-/// ending. The noun itself is part of <see cref="After"/>; the grammar engine computes the answer.
+/// A sentence with a noun phrase to complete. It declares only the determiner, case and column of the phrase; the grammar
+/// engine computes the answer. The noun itself is part of <see cref="After"/>.
 /// </summary>
 /// <param name="Why">Why the case is what it is: "helfen + Dativ", "mit + Dativ".</param>
-public sealed record Frame(
+public abstract record Frame(
+    IReadOnlyList<Segment> Before, IReadOnlyList<Segment> After, string Determiner, Case Case, GenderNumber Column, string Why);
+
+/// <summary>Case practice: the form of the article goes into the gap (Ich helfe ___ Mann).</summary>
+/// <param name="Determiner">der, ein or kein.</param>
+public sealed record CaseFrame(
+    IReadOnlyList<Segment> Before, IReadOnlyList<Segment> After, string Determiner, Case Case, GenderNumber Column, string Why)
+    : Frame(Before, After, Determiner, Case, Column, Why);
+
+/// <summary>Adjective endings: the article (if any) and the adjective are given, the ending goes into the gap (mit einem gut__ Freund).</summary>
+public sealed record EndingFrame(
     IReadOnlyList<Segment> Before, IReadOnlyList<Segment> After, string Determiner, Case Case, GenderNumber Column, string Why,
-    string? Adjective = null);
+    string Adjective)
+    : Frame(Before, After, Determiner, Case, Column, Why);
 
 /// <summary>A sentence whose word order hides who does what; only the article shows it (Den Lehrer sieht der Schüler).</summary>
 /// <param name="Question">Who does it: "Wer sieht?"; the options are the two people in the nominative.</param>

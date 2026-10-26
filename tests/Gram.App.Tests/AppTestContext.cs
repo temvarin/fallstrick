@@ -20,10 +20,10 @@ public abstract class AppTestContext : BunitContext
         "bestehen-aus", "bestehen", "aus", Case.Dative, "sich zusammensetzen aus", "Es geht um Bestandteile.", "состоять из", Level.B1,
         [new Gap([new("Die Wohnung "), new("besteht", 0), new(" ")], ["aus"], Text(" drei Zimmern."))]);
 
-    protected static readonly Frame HelfenDem = new(Text("Ich helfe "), Text(" Mann."), "der", Case.Dative, GenderNumber.Masculine, "helfen + Dativ");
+    protected static readonly CaseFrame HelfenDem = new(Text("Ich helfe "), Text(" Mann."), "der", Case.Dative, GenderNumber.Masculine, "helfen + Dativ");
 
-    protected static Catalog Catalog(IReadOnlyList<Noun>? nouns = null, IReadOnlyList<RektionEntry>? rektion = null, IReadOnlyList<Frame>? frames = null) =>
-        new(nouns ?? [], rektion ?? [], frames ?? [], [], [], [new Term("bestehen", "состоять")]);
+    protected static Catalog Catalog(IReadOnlyList<Noun>? nouns = null, IReadOnlyList<RektionEntry>? rektion = null, IReadOnlyList<CaseFrame>? frames = null) =>
+        new(nouns ?? [], rektion ?? [], frames ?? [], [], [], [], [new Term("bestehen", "состоять")]);
 
     protected FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 20, 10, 0, 0, TimeSpan.Zero));
 

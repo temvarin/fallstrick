@@ -6,7 +6,7 @@ public class AttemptTests
 {
     static readonly Noun Messer = new("Messer", Gender.Neuter, "Messer", null, "нож", Level.A2);
 
-    static readonly Frame HelfenDem = new(
+    static readonly CaseFrame HelfenDem = new(
         [new Segment("Ich helfe ")], [new Segment(" Mann.")], "der", Case.Dative, GenderNumber.Masculine, "helfen + Dativ");
 
     // der/die/das: no second try.

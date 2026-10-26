@@ -41,7 +41,7 @@ public sealed record ArticleExercise(Card Card, Noun Noun, GenderRule? Rule, IRe
 }
 
 /// <summary>Choose the form of the article in a sentence: Ich helfe ___ Mann.</summary>
-public sealed record CaseExercise(Card Card, Frame Frame) : Exercise(Card)
+public sealed record CaseExercise(Card Card, CaseFrame Frame) : Exercise(Card)
 {
     Determiner Determiner => Determiners.Get(Frame.Determiner);
 
@@ -51,6 +51,9 @@ public sealed record CaseExercise(Card Card, Frame Frame) : Exercise(Card)
     public IReadOnlyList<string> Options => Enum.GetValues<Case>()
         .SelectMany(c => Enum.GetValues<GenderNumber>().Select(g => Determiner.Form(c, g)))
         .OfType<string>().Distinct().Order(StringComparer.Ordinal).ToList();
+
+    /// <summary>Every form of this article, for the feedback.</summary>
+    public Paradigm Table => Paradigm.Of(Determiner);
 
     public override bool AllowsRetry => true;
 
@@ -63,20 +66,24 @@ public sealed record CaseExercise(Card Card, Frame Frame) : Exercise(Card)
 }
 
 /// <summary>Choose the adjective ending: mit einem gut__ Freund.</summary>
-public sealed record EndingExercise(Card Card, Frame Frame) : Exercise(Card)
+public sealed record EndingExercise(Card Card, EndingFrame Frame) : Exercise(Card)
 {
     Determiner Determiner => Determiners.Get(Frame.Determiner);
-
-    string Adjective => Frame.Adjective!;
 
     /// <summary>The article form, empty without one.</summary>
     public string DeterminerForm => Determiner.Form(Frame.Case, Frame.Column)!;
 
-    public string Stem => Grammar.Adjective.Stem(Adjective);
+    public string Stem => Grammar.Adjective.Stem(Frame.Adjective);
 
     public string Answer => Grammar.Adjective.Ending(Determiner.Adjective, Frame.Case, Frame.Column);
 
     public static IReadOnlyList<string> Options => Grammar.Adjective.AllEndings;
+
+    /// <summary>How the adjective inflects after this determiner, which picks the table of endings.</summary>
+    public Inflection Inflection => Determiner.Adjective;
+
+    /// <summary>The endings after this kind of determiner, for the feedback.</summary>
+    public Paradigm Table => Paradigm.Endings(Inflection);
 
     public override bool AllowsRetry => true;
 
@@ -165,5 +172,5 @@ public static class German
         _ => "Plural",
     };
 
-    public static string Gender(Gender gender) => Column((GenderNumber)gender);
+    public static string Gender(Gender gender) => Column(gender.Singular());
 }
