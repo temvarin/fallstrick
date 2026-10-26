@@ -1,5 +1,5 @@
 # Every card key ever released, written by `build`. Progress on the learner's phone is stored under these keys.
-# Don't edit: a key that is gone has to be moved in card-key-moves.json instead.
+# Remove a line only to drop that card's progress on purpose.
 adjektiv/gemischt/akk/f
 adjektiv/gemischt/akk/m
 adjektiv/gemischt/akk/n

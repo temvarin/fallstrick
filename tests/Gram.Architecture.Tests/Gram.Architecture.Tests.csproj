@@ -15,11 +15,10 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- The compiled code of all three: the rules read their dependencies from it. -->
+  <!-- The compiled code the rules read their dependencies from. -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gram.App\Gram.App.csproj" />
     <ProjectReference Include="..\..\src\Gram.Domain\Gram.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Gram.Pipeline\Gram.Pipeline.csproj" />
   </ItemGroup>
 
 </Project>

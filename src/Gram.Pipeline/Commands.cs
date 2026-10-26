@@ -79,7 +79,7 @@ internal static class Commands
         var lockFile = Path.Combine(paths.Sources, KeyLock.File);
         var released = File.Exists(lockFile) ? KeyLock.Read(File.ReadAllText(lockFile)) : new HashSet<string>();
         var current = built.Cards.Select(c => c.Key.ToString()).ToHashSet(StringComparer.Ordinal);
-        problems = KeyLock.Problems(released, src.KeyMoves ?? new Dictionary<string, string?>(), current);
+        problems = KeyLock.Problems(released, current);
         if (problems.Count > 0) return Fail(problems);
 
         (json, catalog, keys) = (Json.Write(data), built, KeyLock.Write(released, current));

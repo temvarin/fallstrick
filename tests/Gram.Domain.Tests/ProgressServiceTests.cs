@@ -9,7 +9,7 @@ public class ProgressServiceTests
     static readonly Noun Messer = new("Messer", Gender.Neuter, "Messer", null, "нож", Level.A2);
     static readonly Noun Zeitung = new("Zeitung", Gender.Feminine, "Zeitungen", null, "газета", Level.A1);
 
-    static Catalog Catalog(IReadOnlyDictionary<string, string>? moves = null) => new([Messer, Zeitung], [], [], [], [], [], [], moves);
+    static Catalog Catalog() => new([Messer, Zeitung], [], [], [], [], [], []);
 
     // What another start of the app would load.
     static Progress Stored(MemoryStore store) => new ProgressStore(store).Load();
@@ -39,12 +39,12 @@ public class ProgressServiceTests
     }
 
     [Fact]
-    public void A_restored_backup_is_saved_and_moved_to_this_release_s_card_keys()
+    public void A_restored_backup_is_saved()
     {
         var old = new Progress();
-        old.Record(new CardKey("artikel/Messer/m"), Rating.Good, Today, null);
+        old.Record(Messer.Key, Rating.Good, Today, null);
         var store = new MemoryStore();
-        var learner = new ProgressService(new ProgressStore(store), Catalog(new Dictionary<string, string> { ["artikel/Messer/m"] = Messer.Key.Value }));
+        var learner = new ProgressService(new ProgressStore(store), Catalog());
 
         learner.Restore(ProgressService.ReadBackup(ProgressStore.Backup(old))!);
 

@@ -130,22 +130,9 @@ public class PipelineTests
     [Fact]
     public void A_released_card_key_may_not_just_disappear()
     {
-        var problems = KeyLock.Problems(Released, new Dictionary<string, string?>(), new HashSet<string> { "artikel/Teil/m" });
+        var problems = KeyLock.Problems(Released, new HashSet<string> { "artikel/Teil/m" });
 
         Assert.Contains("card key \"rektion/bestehen-aus\" was released", Assert.Single(problems));
-    }
-
-    [Fact]
-    public void A_gone_key_is_moved_to_its_new_card_or_dropped_on_purpose()
-    {
-        HashSet<string> current = ["artikel/Teil/m", "rektion/bestehen-aus-dat"];
-
-        Assert.Empty(KeyLock.Problems(Released, new Dictionary<string, string?> { ["rektion/bestehen-aus"] = "rektion/bestehen-aus-dat" }, current));
-        Assert.Empty(KeyLock.Problems(Released, new Dictionary<string, string?> { ["rektion/bestehen-aus"] = null }, current));
-        Assert.Contains(KeyLock.Problems(Released, new Dictionary<string, string?> { ["rektion/bestehen-aus"] = "rektion/x" }, current),
-            p => p.Contains("which is no card"));
-        Assert.Contains(KeyLock.Problems(Released, new Dictionary<string, string?> { ["artikel/Teil/m"] = null }, current),
-            p => p.Contains("is still a card"));
     }
 
     [Fact]
@@ -156,19 +143,6 @@ public class PipelineTests
         Assert.Equal(["artikel/a", "rektion/b"], KeyLock.Read(text).Order(StringComparer.Ordinal));
         Assert.EndsWith("artikel/a\nrektion/b\n", text, StringComparison.Ordinal);
         Assert.Equal(KeyLock.Read(text), KeyLock.Read(text.ReplaceLineEndings("\r\n")));
-    }
-
-    [Fact]
-    public void Moves_that_carry_progress_over_reach_the_app()
-    {
-        var data = DataBuilder.Build(Data([Noun()]) with
-        {
-            KeyMoves = new Dictionary<string, string?> { ["artikel/Teile/m"] = "artikel/Teil/m", ["rektion/weg"] = null },
-        });
-
-        var read = JsonSerializer.Deserialize(Json.Write(data), DataJson.Default.CatalogData)!;
-
-        Assert.Equal("artikel/Teil/m", Assert.Single(read.ToCatalog().KeyMoves).Value);
     }
 
     [Fact]

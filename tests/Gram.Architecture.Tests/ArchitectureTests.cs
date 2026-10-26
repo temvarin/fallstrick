@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Gram.App.Services;
 using Gram.Domain;
-using Gram.Pipeline;
 using NetArchTest.Rules;
 
 namespace Gram.Architecture.Tests;
@@ -11,7 +10,7 @@ namespace Gram.Architecture.Tests;
 /// <summary>
 /// The structure the code must keep, checked on the compiled code: which part may use which. A rule written only in a
 /// README erodes one convenient call at a time. Each rule says why it exists. Some rules are kept by the compiler
-/// instead: the project references (the domain references nothing), card keys can only be made by
+/// instead: the project references (the domain references nothing, the pipeline not the app), card keys can only be made by
 /// <see cref="CardKey"/>, and progress can only change through <see cref="ProgressService"/>, which saves every change
 /// (their constructor and changing methods are internal).
 /// </summary>
@@ -19,7 +18,6 @@ public class ArchitectureTests
 {
     private static readonly Assembly Domain = typeof(Catalog).Assembly;
     private static readonly Assembly App = typeof(Dialogs).Assembly;
-    private static readonly Assembly Pipeline = typeof(Paths).Assembly;
 
     [Fact]
     public void The_domain_is_plain_code_without_ui_network_or_files() => Holds(
@@ -71,11 +69,6 @@ public class ArchitectureTests
             "Microsoft.JSInterop"),
         "Pages and components get storage and the browser from services, which tests replace with fakes "
         + "(AppTestContext). Browser features go into Services/Browser.cs and wwwroot/browser.js.");
-
-    [Fact]
-    public void The_pipeline_writes_the_app_s_data_but_uses_none_of_its_code() => Holds(
-        Types.InAssembly(Pipeline).ShouldNot().HaveDependencyOnAny("Gram.App"),
-        "The pipeline and the app share only Gram.Domain: the data's types and the grammar that checks it.");
 
     [Fact]
     public void The_domain_s_state_changes_only_through_its_methods()

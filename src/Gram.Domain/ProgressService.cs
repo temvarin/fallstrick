@@ -3,7 +3,6 @@ namespace Gram.Domain;
 /// <summary>
 /// The learner's progress while the app runs. Every change goes through a method here and is saved before it returns,
 /// so a page can't change progress and forget to save it: <see cref="Progress"/>'s own changing methods are internal.
-/// Progress from an earlier release, stored or from a backup, is first moved to this release's card keys.
 /// </summary>
 public sealed class ProgressService
 {
@@ -13,7 +12,7 @@ public sealed class ProgressService
     public ProgressService(ProgressStore store, Catalog catalog)
     {
         (_store, _catalog) = (store, catalog);
-        Progress = Current(store.Load());
+        Progress = store.Load();
     }
 
     /// <summary>To read; changes go through this service.</summary>
@@ -22,8 +21,8 @@ public sealed class ProgressService
     /// <summary>A session over the catalog's cards; each answer is saved as it is recorded.</summary>
     public Session StartSession(DateOnly today, Random random) => Session.Start(_catalog.Cards, Progress, today, random, Save);
 
-    /// <summary>How many different cards a session started now would hold.</summary>
-    public int NextSessionSize(DateOnly today) => Session.SizeFor(_catalog.Cards, Progress, today);
+    /// <summary>How many different cards a session started now would hold. A session changes nothing until it is answered.</summary>
+    public int NextSessionSize(DateOnly today) => Session.Start(_catalog.Cards, Progress, today, Random.Shared).Total;
 
     public void SetNewPerDay(int count) => Change(p => p.SetNewPerDay(count));
 
@@ -38,7 +37,7 @@ public sealed class ProgressService
     /// <summary>Replaces the progress with one read from a backup file.</summary>
     public void Restore(Progress progress)
     {
-        Progress = Current(progress);
+        Progress = progress;
         Save();
     }
 
@@ -52,10 +51,4 @@ public sealed class ProgressService
     }
 
     void Save() => _store.Save(Progress);
-
-    Progress Current(Progress progress)
-    {
-        progress.Move(_catalog.KeyMoves);
-        return progress;
-    }
 }

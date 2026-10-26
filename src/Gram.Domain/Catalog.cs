@@ -14,11 +14,10 @@ public sealed class Catalog
     public Catalog(
         IReadOnlyList<Noun> nouns, IReadOnlyList<RektionEntry> rektion, IReadOnlyList<CaseFrame> caseFrames,
         IReadOnlyList<EndingFrame> endingFrames, IReadOnlyList<WhoWhom> whoWhom, IReadOnlyList<GenderRule> genderRules,
-        IReadOnlyList<Term> terms, IReadOnlyDictionary<string, string>? keyMoves = null)
+        IReadOnlyList<Term> terms)
     {
         (Nouns, Rektion, CaseFrames, EndingFrames, WhoWhom) = (nouns, rektion, caseFrames, endingFrames, whoWhom);
         (GenderRules, Terms) = (genderRules, terms);
-        KeyMoves = keyMoves ?? new Dictionary<string, string>();
         _nouns = nouns.ToDictionary(n => n.Key);
         _rektion = rektion.ToDictionary(r => r.Key);
         _whoWhom = whoWhom.ToDictionary(w => w.Key);
@@ -34,9 +33,6 @@ public sealed class Catalog
     public IReadOnlyList<WhoWhom> WhoWhom { get; }
     public IReadOnlyList<GenderRule> GenderRules { get; }
     public IReadOnlyList<Term> Terms { get; }
-
-    /// <summary>Card keys of earlier releases, to the card that takes over their progress (see <see cref="Progress.Move"/>).</summary>
-    public IReadOnlyDictionary<string, string> KeyMoves { get; }
 
     /// <summary>All cards, in the order new ones are introduced: easier levels and basic cases first.</summary>
     public IReadOnlyList<Card> Cards { get; }

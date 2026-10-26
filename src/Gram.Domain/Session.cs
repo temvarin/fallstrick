@@ -46,13 +46,6 @@ public sealed class Session
         return new Session(Interleave([.. due, .. fresh]), progress, today, random, recorded);
     }
 
-    /// <summary>How many different cards a session started now would hold; the same as <see cref="Start"/>, without starting one.</summary>
-    internal static int SizeFor(IReadOnlyList<Card> cards, Progress progress, DateOnly today)
-    {
-        var due = Math.Min(cards.Count(c => progress.IsDue(c.Key, today)), Size);
-        return due + NewCards(cards, progress, Math.Min(progress.NewLeft(today), Size - due)).Count;
-    }
-
     public void Answer(Rating rating)
     {
         var card = _queue[0];

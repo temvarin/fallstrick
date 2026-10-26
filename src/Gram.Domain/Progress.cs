@@ -40,18 +40,6 @@ public sealed class Progress
 
     internal void SetNewPerDay(int count) => NewPerDay = Math.Clamp(count, 0, 50);
 
-    /// <summary>
-    /// Hands the memory of card keys from earlier releases to the cards that replaced them. A card that already has
-    /// its own memory keeps it.
-    /// </summary>
-    internal void Move(IReadOnlyDictionary<string, string> moves)
-    {
-        foreach (var (from, to) in moves)
-        {
-            if (!Memories.ContainsKey(to) && Memories.Remove(from, out var memory)) Memories[to] = memory;
-        }
-    }
-
     internal void Record(CardKey key, Rating rating, DateOnly today, Random? fuzz)
     {
         if (!Memories.TryGetValue(key.Value, out var memory))

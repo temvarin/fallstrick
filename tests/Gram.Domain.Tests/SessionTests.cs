@@ -146,21 +146,6 @@ public class SessionTests
     }
 
     [Fact]
-    public void Moved_card_keys_take_their_progress_along_unless_the_new_card_has_its_own()
-    {
-        var progress = new Progress();
-        progress.Record(Key("artikel/alt"), Rating.Good, Today, null);
-        progress.Record(Key("artikel/a"), Rating.Good, Today, null);
-        progress.Record(Key("artikel/b"), Rating.Again, Today, null);
-
-        progress.Move(new Dictionary<string, string> { ["artikel/alt"] = "artikel/neu", ["artikel/a"] = "artikel/b" });
-
-        Assert.True(progress.IsNew(Key("artikel/alt")));
-        Assert.False(progress.IsNew(Key("artikel/neu")));
-        Assert.True(progress.IsDue(Key("artikel/b"), Today.AddDays(1))); // kept its own, wrongly answered memory
-    }
-
-    [Fact]
     public void Unreadable_progress_starts_fresh()
     {
         var store = new MemoryStore();
