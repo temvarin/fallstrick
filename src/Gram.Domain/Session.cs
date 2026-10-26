@@ -30,6 +30,9 @@ public sealed class Session
     /// <summary>The number of different cards answered at least once.</summary>
     public int Answered => _scheduled.Count;
 
+    /// <summary>The number of different cards whose first answer in this session was right at the first try.</summary>
+    public int RightFirstTime { get; private set; }
+
     public bool IsFinished => _queue.Count == 0;
 
     /// <param name="cards">All cards of the catalog, in the order new ones should be introduced.</param>
@@ -44,7 +47,11 @@ public sealed class Session
     {
         var card = _queue[0];
         _queue.RemoveAt(0);
-        if (_scheduled.Add(card.Key)) _progress.Record(card.Key, rating, _today, _random);
+        if (_scheduled.Add(card.Key))
+        {
+            _progress.Record(card.Key, rating, _today, _random);
+            if (rating == Rating.Good) RightFirstTime++;
+        }
         if (rating == Rating.Again) _queue.Insert(Math.Min(ComeBackAfter, _queue.Count), card);
     }
 

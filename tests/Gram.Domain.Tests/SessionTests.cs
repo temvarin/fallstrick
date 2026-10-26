@@ -102,6 +102,21 @@ public class SessionTests
     }
 
     [Fact]
+    public void Right_first_time_counts_cards_whose_first_answer_was_good()
+    {
+        Card[] cards = [Article("a"), Rektion("r"), Ending("e")];
+        var session = Session.Start(cards, new Progress(), Today, new Random(1));
+
+        session.Answer(Rating.Good);
+        session.Answer(Rating.Hard);
+        session.Answer(Rating.Again);
+        session.Answer(Rating.Good); // the failed card again
+
+        Assert.True(session.IsFinished);
+        Assert.Equal(1, session.RightFirstTime);
+    }
+
+    [Fact]
     public void Starting_a_card_uses_up_the_new_cards_of_the_day()
     {
         var progress = new Progress();

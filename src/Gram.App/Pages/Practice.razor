@@ -5,19 +5,19 @@
 @inject Random Random
 
 <TopBar Title="Üben" Back="">
-    @if (exercise is not null)
+    @if (attempt is not null)
     {
         <span class="counter" aria-label="@session!.Answered von @session.Total Karten geübt">@session.Answered / @session.Total</span>
     }
 </TopBar>
 
-@if (exercise is null)
+@if (attempt is null)
 {
     <div class="card">
         <p class="headline">@(session?.Total > 0 ? "Geschafft" : "Für heute ist alles geübt")</p>
         @if (session?.Total > 0)
         {
-            <p>@firstTry von @session.Total Karten beim ersten Versuch richtig.</p>
+            <p>@session.RightFirstTime von @session.Total Karten beim ersten Versuch richtig.</p>
         }
     </div>
     @if (more)
@@ -28,35 +28,35 @@
 }
 else
 {
-    <div class="meta"><span class="chip">@Label(exercise)</span></div>
+    <div class="meta"><span class="chip">@Label(attempt.Exercise)</span></div>
 
-    @switch (exercise)
+    @switch (attempt.Exercise)
     {
         case ArticleExercise e:
-            <ArticleTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            <ArticleTask Exercise="e" Done="attempt.IsDone" Wrong="attempt.Wrong" OnSubmit="Submit" />
             break;
         case CaseExercise e:
-            <CaseTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            <CaseTask Exercise="e" Done="attempt.IsDone" Wrong="attempt.Wrong" OnSubmit="Submit" />
             break;
         case EndingExercise e:
-            <EndingTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            <EndingTask Exercise="e" Done="attempt.IsDone" Wrong="attempt.Wrong" OnSubmit="Submit" />
             break;
         case WhoWhomExercise e:
-            <WhoWhomTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" />
+            <WhoWhomTask Exercise="e" Done="attempt.IsDone" Wrong="attempt.Wrong" OnSubmit="Submit" />
             break;
         case RektionExercise e:
-            <RektionTask Exercise="e" Done="Done" Wrong="wrong" OnSubmit="Submit" OnGiveUp="GiveUp" />
+            <RektionTask Exercise="e" Done="attempt.IsDone" Wrong="attempt.Wrong" OnSubmit="Submit" OnGiveUp="GiveUp" />
             break;
     }
 
-    @if (stage == Stage.Retry)
+    @if (attempt.AwaitsRetry)
     {
-        <div class="card hint-card" role="status"><b>Noch nicht.</b> @hint</div>
+        <div class="card hint-card" role="status"><b>Noch nicht.</b> @attempt.Hint</div>
     }
-    @if (Done)
+    @if (attempt.Rating is { } rating)
     {
         <div class="result" role="status">
-            <span class="tag @(rating == Rating.Again ? "bad" : "ok")">@Verdict</span>
+            <span class="tag @(rating == Rating.Again ? "bad" : "ok")">@Verdict(rating)</span>
             @if (rating == Rating.Again)
             {
                 <span class="muted">Kommt in dieser Runde noch einmal.</span>
@@ -67,20 +67,11 @@ else
 }
 
 @code {
-    private enum Stage { Asking, Retry, Done }
-
     private Session? session;
-    private Exercise? exercise;
-    private Stage stage;
-    private readonly List<string> wrong = [];
-    private string? hint;
-    private Rating rating;
-    private int firstTry;
+    private Attempt? attempt;
     private bool more;
 
-    private bool Done => stage == Stage.Done;
-
-    private string Verdict => rating switch
+    private static string Verdict(Rating rating) => rating switch
     {
         Rating.Good => "Richtig",
         Rating.Hard => "Richtig im zweiten Versuch",
@@ -92,45 +83,27 @@ else
     private void Start()
     {
         session = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random);
-        firstTry = 0;
         Show();
     }
 
     private void Show()
     {
-        exercise = session!.Current is { } card ? Catalog.Exercise(card, Random) : null;
-        (stage, hint) = (Stage.Asking, null);
-        wrong.Clear();
+        attempt = session!.Current is { } card ? new Attempt(Catalog.Exercise(card, Random)) : null;
         // More due or new cards than fit into one session.
-        if (exercise is null) more = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random).Total > 0;
+        if (attempt is null) more = Session.Start(Catalog.Cards, State.Progress, Clock.Today(), Random).Total > 0;
     }
 
     private void Submit(string answer)
     {
-        if (exercise!.IsRight(answer))
-        {
-            Finish(stage == Stage.Retry ? Rating.Hard : Rating.Good);
-        }
-        else
-        {
-            wrong.Add(answer);
-            if (stage == Stage.Asking && exercise.AllowsRetry)
-                (stage, hint) = (Stage.Retry, exercise.Hint(answer));
-            else
-                Finish(Rating.Again);
-        }
+        if (attempt!.Submit(answer) is { } rating) Record(rating);
     }
 
-    private void GiveUp() => Finish(Rating.Again);
+    private void GiveUp() => Record(attempt!.GiveUp());
 
     // The answer is recorded right away, so closing the app on the feedback screen loses nothing.
-    private void Finish(Rating result)
+    private void Record(Rating rating)
     {
-        var firstAnswer = session!.Answered;
-        rating = result;
-        stage = Stage.Done;
-        session.Answer(result);
-        if (session.Answered > firstAnswer && result == Rating.Good) firstTry++;
+        session!.Answer(rating);
         State.Save();
     }
 
