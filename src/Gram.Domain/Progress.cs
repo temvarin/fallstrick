@@ -29,21 +29,33 @@ public sealed class Progress
 
     public void MarkBackedUp(DateOnly today) => LastBackup = today;
 
-    public bool IsNew(string key) => !Memories.ContainsKey(key);
+    public bool IsNew(CardKey key) => !Memories.ContainsKey(key.Value);
 
-    public bool IsDue(string key, DateOnly today) => Memories.TryGetValue(key, out var memory) && memory.Due <= today;
+    public bool IsDue(CardKey key, DateOnly today) => Memories.TryGetValue(key.Value, out var memory) && memory.Due <= today;
 
     public int NewLeft(DateOnly today) => Math.Max(0, NewPerDay - (NewDay == today ? NewCount : 0));
 
     public void SetNewPerDay(int count) => NewPerDay = Math.Clamp(count, 0, 50);
 
-    public void Record(string key, Rating rating, DateOnly today, Random? fuzz)
+    /// <summary>
+    /// Hands the memory of card keys from earlier releases to the cards that replaced them. A card that already has
+    /// its own memory keeps it.
+    /// </summary>
+    public void Move(IReadOnlyDictionary<string, string> moves)
     {
-        if (!Memories.TryGetValue(key, out var memory))
+        foreach (var (from, to) in moves)
+        {
+            if (!Memories.ContainsKey(to) && Memories.Remove(from, out var memory)) Memories[to] = memory;
+        }
+    }
+
+    public void Record(CardKey key, Rating rating, DateOnly today, Random? fuzz)
+    {
+        if (!Memories.TryGetValue(key.Value, out var memory))
         {
             if (NewDay != today) (NewDay, NewCount) = (today, 0);
             NewCount++;
         }
-        Memories[key] = Fsrs.Review(memory, rating, today, fuzz);
+        Memories[key.Value] = Fsrs.Review(memory, rating, today, fuzz);
     }
 }

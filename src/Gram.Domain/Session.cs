@@ -11,7 +11,7 @@ public sealed class Session
     internal const int ComeBackAfter = 3;
 
     readonly List<Card> _queue;
-    readonly HashSet<string> _scheduled = [];
+    readonly HashSet<CardKey> _scheduled = [];
     readonly Progress _progress;
     readonly DateOnly _today;
     readonly Random _random;

@@ -8,30 +8,35 @@ internal static class Commands
 {
     const string CatalogFile = "catalog.json";
 
-    /// <summary>Validates the sources and writes wwwroot/data/catalog.json.</summary>
+    /// <summary>Validates the sources and writes wwwroot/data/catalog.json, adding new card keys to content/card-keys.txt.</summary>
     public static int Build(Paths paths)
     {
-        if (!TryBuild(paths, out var json, out var catalog)) return 1;
+        if (!TryBuild(paths, out var json, out var catalog, out var keys)) return 1;
 
         Directory.CreateDirectory(paths.AppData);
         File.WriteAllText(Path.Combine(paths.AppData, CatalogFile), json);
+        File.WriteAllText(Path.Combine(paths.Sources, KeyLock.File), keys);
         Console.WriteLine($"wwwroot/data/{CatalogFile}: {catalog.Nouns.Count} nouns, {catalog.Rektion.Count} Rektion entries, " +
             $"{catalog.Frames.Count} frames, {catalog.WhoWhom.Count} who-whom sentences, {catalog.Cards.Count} cards");
         return 0;
     }
 
-    /// <summary>Validates the sources and verifies that wwwroot/data is exactly what <see cref="Build"/> would write (used in CI).</summary>
+    /// <summary>
+    /// Validates the sources and verifies that wwwroot/data and content/card-keys.txt are exactly what <see cref="Build"/>
+    /// would write (used in CI).
+    /// </summary>
     public static int Check(Paths paths)
     {
-        if (!TryBuild(paths, out var json, out _)) return 1;
+        if (!TryBuild(paths, out var json, out _, out var keys)) return 1;
 
-        var file = Path.Combine(paths.AppData, CatalogFile);
-        if (!File.Exists(file) || File.ReadAllText(file) != json)
+        foreach (var (file, expected) in new[] { (Path.Combine(paths.AppData, CatalogFile), json), (Path.Combine(paths.Sources, KeyLock.File), keys) })
         {
-            Console.Error.WriteLine($"wwwroot/data/{CatalogFile} is out of date – run `build`.");
+            // Line endings as Git checked them out (CRLF on Windows with core.autocrlf) don't count.
+            if (File.Exists(file) && File.ReadAllText(file).ReplaceLineEndings("\n") == expected) continue;
+            Console.Error.WriteLine($"{Path.GetRelativePath(paths.Root, file).Replace('\\', '/')} is out of date – run `build`.");
             return 1;
         }
-        Console.WriteLine("Sources valid, wwwroot/data up to date.");
+        Console.WriteLine("Sources valid, wwwroot/data and card keys up to date.");
         return 0;
     }
 
@@ -60,18 +65,30 @@ internal static class Commands
         return 0;
     }
 
-    static bool TryBuild(Paths paths, [NotNullWhen(true)] out string? json, [NotNullWhen(true)] out Catalog? catalog)
+    /// <param name="keys">content/card-keys.txt as it is after this build.</param>
+    static bool TryBuild(
+        Paths paths, [NotNullWhen(true)] out string? json, [NotNullWhen(true)] out Catalog? catalog, [NotNullWhen(true)] out string? keys)
     {
+        (json, catalog, keys) = (null, null, null);
         var src = SourceData.Load(paths);
         var problems = Validation.Check(src);
-        if (problems.Count > 0)
-        {
-            Console.Error.WriteLine($"{problems.Count} problem(s) in content/:\n  " + string.Join("\n  ", problems));
-            (json, catalog) = (null, null);
-            return false;
-        }
+        if (problems.Count > 0) return Fail(problems);
+
         var data = DataBuilder.Build(src);
-        (json, catalog) = (Json.Write(data), data.ToCatalog());
+        var built = data.ToCatalog();
+        var lockFile = Path.Combine(paths.Sources, KeyLock.File);
+        var released = File.Exists(lockFile) ? KeyLock.Read(File.ReadAllText(lockFile)) : new HashSet<string>();
+        var current = built.Cards.Select(c => c.Key.ToString()).ToHashSet(StringComparer.Ordinal);
+        problems = KeyLock.Problems(released, src.KeyMoves ?? new Dictionary<string, string?>(), current);
+        if (problems.Count > 0) return Fail(problems);
+
+        (json, catalog, keys) = (Json.Write(data), built, KeyLock.Write(released, current));
         return true;
+    }
+
+    static bool Fail(List<string> problems)
+    {
+        Console.Error.WriteLine($"{problems.Count} problem(s) in content/:\n  " + string.Join("\n  ", problems));
+        return false;
     }
 }

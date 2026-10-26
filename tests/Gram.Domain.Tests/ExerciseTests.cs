@@ -34,7 +34,7 @@ public class ExerciseTests
     {
         var cards = Catalog().Cards.Where(c => c.Area == Area.Articles).ToList();
 
-        Assert.Equal(["artikel/Teil/m", "artikel/Zeitung/f", "artikel/Messer/n", "artikel/Teil/n"], cards.Select(c => c.Key));
+        Assert.Equal(["artikel/Teil/m", "artikel/Zeitung/f", "artikel/Messer/n", "artikel/Teil/n"], cards.Select(c => c.Key.Value));
         Assert.Equal(["artikel:Teil", null, null, "artikel:Teil"], cards.Select(c => c.Group));
     }
 
@@ -48,7 +48,7 @@ public class ExerciseTests
             Frame("alle", Case.Dative, GenderNumber.Plural, "neu"));
 
         Assert.Equal(["fall/der/dat/m", "adjektiv/gemischt/dat/m", "adjektiv/nach/alle"],
-            catalog.Cards.Where(c => c.Area is Area.Cases or Area.AdjectiveEndings).Select(c => c.Key));
+            catalog.Cards.Where(c => c.Area is Area.Cases or Area.AdjectiveEndings).Select(c => c.Key.Value));
     }
 
     [Fact]
@@ -84,7 +84,7 @@ public class ExerciseTests
     [Fact]
     public void A_case_exercise_offers_every_form_of_its_article()
     {
-        var exercise = new CaseExercise(new Card("fall/ein/dat/m", Area.Cases), Frame("ein", Case.Dative, GenderNumber.Masculine));
+        var exercise = new CaseExercise(new Card(CardKey.ArticleForm(false, Case.Dative, GenderNumber.Masculine), Area.Cases), Frame("ein", Case.Dative, GenderNumber.Masculine));
 
         Assert.Equal("einem", exercise.Answer);
         Assert.Equal(["ein", "eine", "einem", "einen", "einer", "eines"], exercise.Options);
@@ -103,7 +103,7 @@ public class ExerciseTests
     [InlineData("alle", Case.Nominative, GenderNumber.Plural, "„alle“ zeigt das Signal e – das Adjektiv endet nur auf -en: alle guten.")]
     public void An_ending_explanation_says_who_shows_the_signal(string det, Case @case, GenderNumber column, string expected)
     {
-        var exercise = new EndingExercise(new Card("x", Area.AdjectiveEndings), Frame(det, @case, column, "gut"));
+        var exercise = new EndingExercise(new Card(Gram.Domain.Catalog.KeyOf(Frame(det, @case, column, "gut")), Area.AdjectiveEndings), Frame(det, @case, column, "gut"));
 
         Assert.Equal(expected, exercise.Explanation);
         Assert.True(exercise.IsRight(Adjective.Ending(Determiners.Get(det).Adjective, @case, column)));

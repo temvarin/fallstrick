@@ -4,11 +4,13 @@ using System.Text.Json.Serialization;
 namespace Gram.Domain;
 
 /// <summary>The catalog as one JSON file (wwwroot/data/catalog.json).</summary>
+/// <param name="KeyMoves">Card keys of earlier releases whose progress another card takes over; absent while there are none.</param>
 public sealed record CatalogData(
     IReadOnlyList<Noun> Nouns, IReadOnlyList<RektionEntry> Rektion, IReadOnlyList<Frame> Frames,
-    IReadOnlyList<WhoWhom> WhoWhom, IReadOnlyList<GenderRule> GenderRules, IReadOnlyList<Term> Terms)
+    IReadOnlyList<WhoWhom> WhoWhom, IReadOnlyList<GenderRule> GenderRules, IReadOnlyList<Term> Terms,
+    IReadOnlyDictionary<string, string>? KeyMoves = null)
 {
-    public Catalog ToCatalog() => new(Nouns, Rektion, Frames, WhoWhom, GenderRules, Terms);
+    public Catalog ToCatalog() => new(Nouns, Rektion, Frames, WhoWhom, GenderRules, Terms, KeyMoves);
 }
 
 /// <summary>

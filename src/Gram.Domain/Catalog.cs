@@ -8,16 +8,18 @@ public sealed class Catalog
     /// <summary>Determiners after which adjective endings are a classic stumbling block; each gets its own card.</summary>
     public static readonly IReadOnlySet<string> Quantifiers = new HashSet<string> { "alle", "beide", "sämtliche", "viele", "wenige", "einige", "mehrere", "zwei", "drei", "vier" };
 
-    readonly Dictionary<string, Noun> _nouns;
-    readonly Dictionary<string, RektionEntry> _rektion;
-    readonly Dictionary<string, WhoWhom> _whoWhom;
-    readonly ILookup<string, Frame> _frames;
+    readonly Dictionary<CardKey, Noun> _nouns;
+    readonly Dictionary<CardKey, RektionEntry> _rektion;
+    readonly Dictionary<CardKey, WhoWhom> _whoWhom;
+    readonly ILookup<CardKey, Frame> _frames;
 
     public Catalog(
         IReadOnlyList<Noun> nouns, IReadOnlyList<RektionEntry> rektion, IReadOnlyList<Frame> frames,
-        IReadOnlyList<WhoWhom> whoWhom, IReadOnlyList<GenderRule> genderRules, IReadOnlyList<Term> terms)
+        IReadOnlyList<WhoWhom> whoWhom, IReadOnlyList<GenderRule> genderRules, IReadOnlyList<Term> terms,
+        IReadOnlyDictionary<string, string>? keyMoves = null)
     {
         (Nouns, Rektion, Frames, WhoWhom, GenderRules, Terms) = (nouns, rektion, frames, whoWhom, genderRules, terms);
+        KeyMoves = keyMoves ?? new Dictionary<string, string>();
         _nouns = nouns.ToDictionary(n => n.Key);
         _rektion = rektion.ToDictionary(r => r.Key);
         _whoWhom = whoWhom.ToDictionary(w => w.Key);
@@ -32,33 +34,40 @@ public sealed class Catalog
     public IReadOnlyList<GenderRule> GenderRules { get; }
     public IReadOnlyList<Term> Terms { get; }
 
+    /// <summary>Card keys of earlier releases, to the card that takes over their progress (see <see cref="Progress.Move"/>).</summary>
+    public IReadOnlyDictionary<string, string> KeyMoves { get; }
+
     /// <summary>All cards, in the order new ones are introduced: easier levels and basic cases first.</summary>
     public IReadOnlyList<Card> Cards { get; }
 
     /// <summary>The card a frame practises: one cell of a declension table, or one quantifier.</summary>
-    public static string KeyOf(Frame frame)
+    public static CardKey KeyOf(Frame frame)
     {
-        var cell = $"{CaseCode(frame.Case)}/{ColumnCode(frame.Column)}";
         if (frame.Adjective is null)
-            return $"fall/{(frame.Determiner == "der" ? "der" : "ein")}/{cell}";
+            return CardKey.ArticleForm(frame.Determiner == "der", frame.Case, frame.Column);
         if (Quantifiers.Contains(frame.Determiner))
-            return $"adjektiv/nach/{frame.Determiner}";
-        return $"adjektiv/{InflectionCode(Determiners.Get(frame.Determiner).Adjective)}/{cell}";
+            return CardKey.EndingAfter(frame.Determiner);
+        return CardKey.Ending(Determiners.Get(frame.Determiner).Adjective, frame.Case, frame.Column);
     }
 
     public Exercise Exercise(Card card, Random random)
     {
-        if (_nouns.TryGetValue(card.Key, out var noun))
-            return new ArticleExercise(card, noun, GenderRuleFor(noun), Nouns.Where(n => n.Lemma == noun.Lemma && n != noun).ToList());
-        if (_rektion.TryGetValue(card.Key, out var entry))
-            return new RektionExercise(card, entry, entry.Sentences[random.Next(entry.Sentences.Count)],
-                Rektion.Where(r => r.Group is not null && r.Group == entry.Group && r != entry).ToList());
-        if (_whoWhom.TryGetValue(card.Key, out var whoWhom))
-            return new WhoWhomExercise(card, whoWhom);
-
-        var frames = _frames[card.Key].ToList();
-        var frame = frames[random.Next(frames.Count)];
-        return frame.Adjective is null ? new CaseExercise(card, frame) : new EndingExercise(card, frame);
+        switch (card.Area)
+        {
+            case Area.Articles:
+                var noun = _nouns[card.Key];
+                return new ArticleExercise(card, noun, GenderRuleFor(noun), Nouns.Where(n => n.Lemma == noun.Lemma && n != noun).ToList());
+            case Area.Rektion:
+                var entry = _rektion[card.Key];
+                return new RektionExercise(card, entry, entry.Sentences[random.Next(entry.Sentences.Count)],
+                    Rektion.Where(r => r.Group is not null && r.Group == entry.Group && r != entry).ToList());
+            case Area.Cases when _whoWhom.TryGetValue(card.Key, out var whoWhom):
+                return new WhoWhomExercise(card, whoWhom);
+            default:
+                var frames = _frames[card.Key].ToList();
+                var frame = frames[random.Next(frames.Count)];
+                return frame.Adjective is null ? new CaseExercise(card, frame) : new EndingExercise(card, frame);
+        }
     }
 
     /// <summary>
@@ -80,47 +89,31 @@ public sealed class Catalog
         var articles = Nouns.OrderBy(n => n.Level)
             .Select(n => new Card(n.Key, Area.Articles, sameLemma.Contains(n.Lemma) ? $"artikel:{n.Lemma}" : null));
 
+        // One card per key; its frames share determiner kind, case and column, so the first one stands for all.
+        var cells = _frames.Select(g => (Key: g.Key, Frame: g.First())).ToList();
+
         // Definite before indefinite, nominative and accusative first; the who-does-what sentences right after the accusative.
-        var caseCells = _frames.Select(g => g.Key).Where(k => k.StartsWith("fall/", StringComparison.Ordinal))
-            .OrderBy(k => k.StartsWith("fall/ein", StringComparison.Ordinal)).ThenBy(CaseRank).ToList();
-        var basic = caseCells.Where(k => k.StartsWith("fall/der", StringComparison.Ordinal) && CaseRank(k) <= 1);
-        var cases = basic.Select(k => new Card(k, Area.Cases))
+        var caseCells = cells.Where(c => c.Frame.Adjective is null)
+            .OrderBy(c => c.Frame.Determiner != "der").ThenBy(c => c.Frame.Case).ToList();
+        var basic = caseCells.Where(c => c.Frame.Determiner == "der" && c.Frame.Case is Case.Nominative or Case.Accusative).ToList();
+        var cases = basic.Select(c => new Card(c.Key, Area.Cases))
             .Concat(WhoWhom.Select(w => new Card(w.Key, Area.Cases)))
-            .Concat(caseCells.Except(basic).Select(k => new Card(k, Area.Cases)));
+            .Concat(caseCells.Except(basic).Select(c => new Card(c.Key, Area.Cases)));
 
         var rektion = Rektion.OrderBy(r => r.Level).Select(r => new Card(r.Key, Area.Rektion, r.Group is null ? null : $"rektion:{r.Group}"));
 
-        // Weak (after der) and mixed (after ein) before strong; quantifiers last.
-        string[] order = ["schwach", "gemischt", "stark", "nach"];
-        var endings = _frames.Select(g => g.Key).Where(k => k.StartsWith("adjektiv/", StringComparison.Ordinal))
-            .OrderBy(k => Array.IndexOf(order, k.Split('/')[1])).ThenBy(CaseRank)
-            .Select(k => new Card(k, Area.AdjectiveEndings));
+        // Weak (after der) and mixed (after ein) before strong, each by case; quantifiers last, in the order of the frames.
+        var endings = cells.Where(c => c.Frame.Adjective is not null)
+            .OrderBy(c => EndingRank(c.Frame)).ThenBy(c => Quantifiers.Contains(c.Frame.Determiner) ? null : (Case?)c.Frame.Case)
+            .Select(c => new Card(c.Key, Area.AdjectiveEndings));
 
         return [.. articles, .. cases, .. rektion, .. endings];
     }
 
-    static int CaseRank(string key) => Array.IndexOf(["nom", "akk", "dat", "gen"], key.Split('/').ElementAtOrDefault(2));
-
-    static string CaseCode(Case @case) => @case switch
+    static int EndingRank(Frame frame) => Quantifiers.Contains(frame.Determiner) ? 3 : Determiners.Get(frame.Determiner).Adjective switch
     {
-        Case.Nominative => "nom",
-        Case.Accusative => "akk",
-        Case.Dative => "dat",
-        _ => "gen",
-    };
-
-    static string ColumnCode(GenderNumber column) => column switch
-    {
-        GenderNumber.Masculine => "m",
-        GenderNumber.Neuter => "n",
-        GenderNumber.Feminine => "f",
-        _ => "pl",
-    };
-
-    static string InflectionCode(Inflection inflection) => inflection switch
-    {
-        Inflection.Strong => "stark",
-        Inflection.Weak => "schwach",
-        _ => "gemischt",
+        Inflection.Weak => 0,
+        Inflection.Mixed => 1,
+        _ => 2,
     };
 }

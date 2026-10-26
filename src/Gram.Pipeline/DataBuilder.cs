@@ -35,7 +35,11 @@ internal static class DataBuilder
 
         var rules = src.GenderRules.Select(r => new GenderRule(r.Suffix, Codes.Gender(r.G)!.Value, r.Reliable, r.Example)).ToList();
 
+        // Only moves that carry progress over matter to the app; dropped keys are left where they are.
+        var moves = (src.KeyMoves ?? new Dictionary<string, string?>())
+            .Where(m => m.Value is not null).OrderBy(m => m.Key, StringComparer.Ordinal).ToDictionary(m => m.Key, m => m.Value!);
+
         untranslated = words.Untranslated;
-        return new CatalogData(nouns, rektion, frames, whoWhom, rules, words.Used.ToList());
+        return new CatalogData(nouns, rektion, frames, whoWhom, rules, words.Used.ToList(), moves.Count > 0 ? moves : null);
     }
 }

@@ -111,7 +111,7 @@ Edit the files in `content/`, then rebuild the app's data:
 dotnet run --project src/Gram.Pipeline -- build
 ```
 
-`build` refuses to write data that breaks a content rule and lists the problems. Two more commands help with larger changes:
+`build` refuses to write data that breaks a content rule and lists the problems. It also adds new card keys to `content/card-keys.txt`, the list of every key ever released: progress on the phone is stored under these keys, so `build` and CI fail when one disappears (a renamed noun, say). Map the old key to its new one in `content/card-key-moves.json` and the app moves the progress along; map it to `null` to drop it on purpose. Two more commands help with larger changes:
 
 - `words` lists words in sentences that can't be tapped for a translation yet (add them to `glossary.json`, or to `common-words.txt` if they are too basic to need one).
 - `verify --goethe <folder>` compares every noun with Wiktionary and, given the DWDS copies of the Goethe word lists (`A1.csv`, `A2.csv`, `B1.csv`), with the list it cites. Wiktionary pages are cached in `.cache/` and not committed.

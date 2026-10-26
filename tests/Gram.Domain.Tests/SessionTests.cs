@@ -4,9 +4,10 @@ public class SessionTests
 {
     static readonly DateOnly Today = new(2026, 10, 20);
 
-    static Card Article(string key, string? group = null) => new($"artikel/{key}", Area.Articles, group);
-    static Card Rektion(string key, string? group = null) => new($"rektion/{key}", Area.Rektion, group);
-    static Card Ending(string key) => new($"adjektiv/{key}", Area.AdjectiveEndings);
+    static CardKey Key(string key) => new(key);
+    static Card Article(string key, string? group = null) => new(Key($"artikel/{key}"), Area.Articles, group);
+    static Card Rektion(string key, string? group = null) => new(Key($"rektion/{key}"), Area.Rektion, group);
+    static Card Ending(string key) => new(Key($"adjektiv/{key}"), Area.AdjectiveEndings);
 
     static Progress Learned(DateOnly due, params Card[] cards)
     {
@@ -36,7 +37,7 @@ public class SessionTests
 
         var fresh = Session.NewCards(cards, new Progress(), 3);
 
-        Assert.Equal(["artikel/a", "rektion/r1", "adjektiv/e"], fresh.Select(c => c.Key));
+        Assert.Equal(["artikel/a", "rektion/r1", "adjektiv/e"], fresh.Select(c => c.Key.Value));
     }
 
     [Fact]
@@ -46,7 +47,7 @@ public class SessionTests
 
         var fresh = Session.NewCards(cards, new Progress(), 1);
 
-        Assert.Equal(["artikel/Teil/m", "artikel/Teil/n"], fresh.Select(c => c.Key));
+        Assert.Equal(["artikel/Teil/m", "artikel/Teil/n"], fresh.Select(c => c.Key.Value));
     }
 
     [Fact]
@@ -67,7 +68,7 @@ public class SessionTests
         var order = Session.Interleave(cards);
 
         for (var i = 1; i < order.Count; i++)
-            Assert.False(order[i - 1].Group == "bestehen" && order[i].Group == "bestehen", string.Join(", ", order.Select(c => c.Key)));
+            Assert.False(order[i - 1].Group == "bestehen" && order[i].Group == "bestehen", string.Join(", ", order.Select(c => c.Key.Value)));
     }
 
     [Fact]
@@ -121,7 +122,7 @@ public class SessionTests
     {
         var progress = new Progress();
         progress.SetNewPerDay(2);
-        progress.Record("artikel/a", Rating.Good, Today, null);
+        progress.Record(Key("artikel/a"), Rating.Good, Today, null);
 
         Assert.Equal(1, progress.NewLeft(Today));
         Assert.Equal(2, progress.NewLeft(Today.AddDays(1)));
@@ -133,15 +134,30 @@ public class SessionTests
         var store = new MemoryStore();
         var progress = new Progress();
         progress.SetNewPerDay(7);
-        progress.Record("artikel/a", Rating.Good, Today, null);
+        progress.Record(Key("artikel/a"), Rating.Good, Today, null);
 
         new ProgressStore(store).Save(progress);
         var loaded = new ProgressStore(store).Load();
 
         Assert.Equal(7, loaded.NewPerDay);
-        Assert.False(loaded.IsNew("artikel/a"));
-        Assert.True(loaded.IsDue("artikel/a", Today.AddDays(2)));
+        Assert.False(loaded.IsNew(Key("artikel/a")));
+        Assert.True(loaded.IsDue(Key("artikel/a"), Today.AddDays(2)));
         Assert.Equal(6, loaded.NewLeft(Today));
+    }
+
+    [Fact]
+    public void Moved_card_keys_take_their_progress_along_unless_the_new_card_has_its_own()
+    {
+        var progress = new Progress();
+        progress.Record(Key("artikel/alt"), Rating.Good, Today, null);
+        progress.Record(Key("artikel/a"), Rating.Good, Today, null);
+        progress.Record(Key("artikel/b"), Rating.Again, Today, null);
+
+        progress.Move(new Dictionary<string, string> { ["artikel/alt"] = "artikel/neu", ["artikel/a"] = "artikel/b" });
+
+        Assert.True(progress.IsNew(Key("artikel/alt")));
+        Assert.False(progress.IsNew(Key("artikel/neu")));
+        Assert.True(progress.IsDue(Key("artikel/b"), Today.AddDays(1))); // kept its own, wrongly answered memory
     }
 
     [Fact]
@@ -150,18 +166,18 @@ public class SessionTests
         var store = new MemoryStore();
         store.Write("gram.progress", "{not json");
 
-        Assert.True(new ProgressStore(store).Load().IsNew("artikel/a"));
+        Assert.True(new ProgressStore(store).Load().IsNew(Key("artikel/a")));
     }
 
     [Fact]
     public void A_backup_restores_the_progress_and_other_files_are_refused()
     {
         var progress = new Progress();
-        progress.Record("artikel/a", Rating.Good, Today, null);
+        progress.Record(Key("artikel/a"), Rating.Good, Today, null);
 
         var restored = ProgressStore.TryRead(ProgressStore.Backup(progress));
 
-        Assert.False(restored!.IsNew("artikel/a"));
+        Assert.False(restored!.IsNew(Key("artikel/a")));
         Assert.Null(ProgressStore.TryRead("""{"schema":1,"data":{}}"""));
         Assert.Null(ProgressStore.TryRead("not json"));
     }
@@ -172,7 +188,7 @@ public class SessionTests
         var progress = new Progress();
         Assert.False(progress.NeedsBackup(Today));
 
-        progress.Record("artikel/a", Rating.Good, Today, null);
+        progress.Record(Key("artikel/a"), Rating.Good, Today, null);
         Assert.True(progress.NeedsBackup(Today));
 
         progress.MarkBackedUp(Today);

@@ -25,6 +25,7 @@ public sealed record SourceGenderRule(string Suffix, string G, bool Reliable, st
 /// <summary>A tappable word that isn't one of the nouns: verbs, adjectives, other nouns.</summary>
 public sealed record SourceTerm(string De, string[] Forms, string Ru);
 
+/// <param name="KeyMoves">Released card keys that no card has any more: to the key that takes over their progress, or null (see <see cref="KeyLock"/>).</param>
 public sealed record SourceData(
     IReadOnlyDictionary<string, string> Sources,
     IReadOnlyList<SourceNoun> Nouns,
@@ -32,7 +33,8 @@ public sealed record SourceData(
     IReadOnlyList<SourceFrame> Frames,
     IReadOnlyList<SourceWhoWhom> WhoWhom,
     IReadOnlyList<SourceGenderRule> GenderRules,
-    IReadOnlyList<SourceTerm> Glossary)
+    IReadOnlyList<SourceTerm> Glossary,
+    IReadOnlyDictionary<string, string?>? KeyMoves = null)
 {
     public static SourceData Load(Paths paths)
     {
@@ -44,7 +46,8 @@ public sealed record SourceData(
             Read<List<SourceFrame>>("frames.json"),
             Read<List<SourceWhoWhom>>("wer-wen.json"),
             Read<List<SourceGenderRule>>("gender-rules.json"),
-            Read<List<SourceTerm>>("glossary.json"));
+            Read<List<SourceTerm>>("glossary.json"),
+            Read<Dictionary<string, string?>>("card-key-moves.json"));
     }
 }
 

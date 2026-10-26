@@ -29,7 +29,7 @@ public sealed record Noun(string Lemma, Gender Gender, string? Plural, string? H
         _ => "die",
     };
 
-    [JsonIgnore] public string Key => $"artikel/{Lemma}/{"mnf"[(int)Gender]}";
+    [JsonIgnore] public CardKey Key => CardKey.Article(Lemma, Gender);
 
     [JsonIgnore] public string WithArticle => $"{Article(Gender)} {Lemma}";
 }
@@ -42,7 +42,7 @@ public sealed record RektionEntry(
     string Id, string Headword, string Preposition, Case Case, string Meaning, string Hint, string Ru, Level Level,
     IReadOnlyList<Gap> Sentences, string? Group = null)
 {
-    [JsonIgnore] public string Key => $"rektion/{Id}";
+    [JsonIgnore] public CardKey Key => CardKey.Rektion(Id);
 }
 
 /// <summary>
@@ -58,7 +58,7 @@ public sealed record Frame(
 /// <param name="Question">Who does it: "Wer sieht?"; the options are the two people in the nominative.</param>
 public sealed record WhoWhom(string Id, IReadOnlyList<Segment> Sentence, string Question, IReadOnlyList<string> Options, int Answer, string Why)
 {
-    [JsonIgnore] public string Key => $"fall/wer/{Id}";
+    [JsonIgnore] public CardKey Key => CardKey.WhoWhom(Id);
 }
 
 /// <summary>A noun ending that predicts the gender: -ung → die. <see cref="Reliable"/> rules have (almost) no exceptions.</summary>

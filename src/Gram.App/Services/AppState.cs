@@ -3,17 +3,24 @@ using Gram.Domain;
 namespace Gram.App.Services;
 
 /// <summary>The learner's progress for the running app. Components change <see cref="Progress"/>, then call <see cref="Save"/>.</summary>
-public sealed class AppState(ProgressStore store)
+/// <remarks>Progress from an earlier release, stored or from a backup, is moved to this release's card keys first.</remarks>
+public sealed class AppState(ProgressStore store, Catalog catalog)
 {
-    public Progress Progress { get; private set; } = store.Load();
+    public Progress Progress { get; private set; } = Current(store.Load(), catalog);
 
     public void Save() => store.Save(Progress);
 
     /// <summary>Replaces the progress, e.g. with one read from a backup file.</summary>
     public void Replace(Progress progress)
     {
-        Progress = progress;
+        Progress = Current(progress, catalog);
         Save();
+    }
+
+    static Progress Current(Progress progress, Catalog catalog)
+    {
+        progress.Move(catalog.KeyMoves);
+        return progress;
     }
 }
 
